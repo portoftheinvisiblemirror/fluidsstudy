@@ -21,7 +21,7 @@ long double** allocate2d(const unsigned int x, const unsigned int y, long double
 		// Allocate memory blocks for
 		// rows of each 2D array
 		array2d[i] = new long double[y];
-blink
+blinky
 	}
 
 	return array2d;
