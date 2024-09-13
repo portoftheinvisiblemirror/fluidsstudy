@@ -6,6 +6,7 @@
 #include <cmath>
 #include <algorithm>
 #include <chrono>
+#include <vector>
 long double** allocate2d(const unsigned int latitudes, const unsigned int longitudes, const unsigned int narea, long double*** spheremesh);
 long double*** allocate3d(const unsigned int latitudes, const unsigned int longitudes, const unsigned int narea, long double*** spheremesh);
 long double*** compute_spheremesh(const double radius, const unsigned int latitudes, const unsigned int longitudes, long double*** spheremesh);
@@ -632,51 +633,9 @@ int checkcube(double radius, double s, double x, double y, double z)
 	{
 		return -1;
 	}
-	////create array of cube vertices as vectors
-	//vector cube[8];
-	//int index = 0;
-	//double xin = x - s / 2;
-	//double yin = y - s / 2;
-	//double zin = z - s / 2;
- // // Maybe as you construct your box coordinates, return immediately if the box is too far away.
-	//for (int i = 0; i <= 1; i++)
-	//{
-	//	yin = y - s / 2;
-	//	for (int j = 0; j <= 1; j++)
-	//	{
-	//		xin = x - s / 2;
-	//		for (int k = 0; k <= 1; k++)
-	//		{
-	//			cube[index].set(xin,yin,zin);
-	//			xin += s;
-	//		}
-	//		yin += s;
-	//	}
-	//	zin += s;
-	//}
-	////array of minkowski differences
-	//vector m[4];
-	////start with a given support point
-	//vector support1 = cube[1];
-	////compute 1st minkowski difference
-	//m[0] = cube[1] + (cube[1]-center) * (radius / (cube[1]-center).length());
-	//
-	////generate simplex
-	//int k = 1;
-	//for (int i = 1; i < 4; ++i)
-	//{
-	//	m[3] = m[2];
-	//	m[2] = m[1];
-	//	m[1] = m[0];
-	//	m[0] = cube[support(cube, center, (m[0]+m[1]+ m[2] + m[3])/k)] + m[0] * (radius / m[0].length());
-	//}
-
-	//if (tetrahedral(m[0], m[1], m[2], m[3]) == -1)
-	//	return -1;
-	//else
 	return 0;
 }
-vector force(double x0, double y0, double z0, unsigned int longitudes, unsigned int latitudes, long double radius, int cube, double p, long double **cubes)
+vector force(double x0, double y0, double z0, unsigned int longitudes, unsigned int latitudes, long double radius, int cube, double p, long double **cubes, const std::vector<int>& vect)
 {
 	long double s = radius / cube;
 	long double h = s / 2;
@@ -690,13 +649,10 @@ vector force(double x0, double y0, double z0, unsigned int longitudes, unsigned 
 	start = std::chrono::high_resolution_clock::now();
 	int l = 0;
 	assert(spheremesh != nullptr);
-	for (unsigned long int kk = 0; kk < 8*cube*cube*cube; kk++)
+	for (auto &kk :vect)
 	{
-		if (checkcube(radius, s, cubes[kk][0], cubes[kk][1], cubes[kk][2]) == 0)
-		{
 			double a = cubes[kk][0] - h, b = cubes[kk][0] + h, c = cubes[kk][1] - h, d = cubes[kk][1] + h, e = cubes[kk][2] - h, f = cubes[kk][2] + h;
 			sum = sum+ forcel(radius, a, b, c, d, e, f, latitudes, longitudes, spheremesh,p,x0,y0,z0);
-		}
 	}
 	finish = std::chrono::high_resolution_clock::now();
 	milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start);
@@ -705,7 +661,7 @@ vector force(double x0, double y0, double z0, unsigned int longitudes, unsigned 
 	std::cout << "Calculated force: " << "(" << sum.X() << ", " << sum.Y() << ", " << sum.Z() << ")" << std::endl;
 	return sum;
 }
-vector torque(double x0, double y0, double z0, unsigned int longitudes, unsigned int latitudes, long double radius, int cube, double p,long double **cubes)
+vector torque(double x0, double y0, double z0, unsigned int longitudes, unsigned int latitudes, long double radius, int cube, double p,long double **cubes, const std::vector<int>& vect)
 {
 	long double s = radius / cube;
 	long double h = s / 2;
@@ -719,13 +675,10 @@ vector torque(double x0, double y0, double z0, unsigned int longitudes, unsigned
 	start = std::chrono::high_resolution_clock::now();
 	int l = 0;
 	assert(spheremesh != nullptr);
-	for (unsigned long int kk = 0; kk < 8*cube*cube*cube; kk++)
+	for (auto &kk :vect)
 	{
-		if (checkcube(radius, s, cubes[kk][0], cubes[kk][1], cubes[kk][2]) == 0)
-		{
 			double a = cubes[kk][0] - h, b = cubes[kk][0] + h, c = cubes[kk][1] - h, d = cubes[kk][1] + h, e = cubes[kk][2] - h, f = cubes[kk][2] + h;
 			sum = sum + torquel(radius, a, b, c, d, e, f, latitudes, longitudes, spheremesh, p, x0, y0, z0);
-		}
 	}
 	finish = std::chrono::high_resolution_clock::now();
 	milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start);
@@ -769,10 +722,18 @@ int main()
 	vector ucm(0, 0, 0);
 	vector xyz(spherex, spherey, spherez);
 	vector angv(0, 0, 0);
+	std::vector <int> correctindexes;
+	for (unsigned long int kk = 0; kk < 8 * cube * cube * cube; kk++)
+	{
+		if (checkcube(radius, radius/cube, cubes[kk][0], cubes[kk][1], cubes[kk][2]) == 0)
+		{
+			correctindexes.push_back(kk);
+		}
+	}
 	for (int i = 0; i < 100; i++)
 	{
-		vector F = force(xyz.X(), xyz.Y(), xyz.Z(), longitudes, latitudes, radius, cube, pressure,cubes);
-		angv = angv+torque(xyz.X(), xyz.Y(), xyz.Z(), longitudes, latitudes, radius, cube, pressure,cubes)*increment/(2*mass*radius*radius/5);
+		vector F = force(xyz.X(), xyz.Y(), xyz.Z(), longitudes, latitudes, radius, cube, pressure,cubes,correctindexes);
+		angv = angv+torque(xyz.X(), xyz.Y(), xyz.Z(), longitudes, latitudes, radius, cube, pressure,cubes,correctindexes)*increment/(2*mass*radius*radius/5);
 		xyz = xyz + ucm * increment + F * (increment) * (increment) / (2 * mass);
 	}
 	std::cout << xyz.X() <<" " << xyz.Y()<<" " << xyz.Z();
