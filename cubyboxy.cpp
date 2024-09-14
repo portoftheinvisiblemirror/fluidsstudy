@@ -717,6 +717,10 @@ int main()
 	cubes = compute_cubes(radius, cube, cubes);
 	vector* velocities;
 	int l = sizeof(cubes);
+	for (int i = 0; i <= l; i++)
+	{
+		velocities[i] = velocity(cubes[i][0], cubes[i][1], cubes[i][2]);
+	}
 	velocities = new vector  [l];
 	assert(cubes != nullptr);
 	vector ucm(0, 0, 0);
