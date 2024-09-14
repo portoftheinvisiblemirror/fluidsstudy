@@ -7,73 +7,11 @@
 #include <algorithm>
 #include <chrono>
 #include <vector>
-long double** allocate2d(const unsigned int latitudes, const unsigned int longitudes, const unsigned int narea, long double*** spheremesh);
-long double*** allocate3d(const unsigned int latitudes, const unsigned int longitudes, const unsigned int narea, long double*** spheremesh);
+#include "mem.hpp"
+
 long double*** compute_spheremesh(const double radius, const unsigned int latitudes, const unsigned int longitudes, long double*** spheremesh);
 long double** compute_cubes(const double radius, const unsigned int cube, long double** cubes);
 
-long double** allocate2d(const unsigned int x, const unsigned int y, long double** array2d) {
-	// Allocate memory blocks of size
-	// x i.e., no of 2D Arrays
-	array2d = new long double* [x];
-
-	for (unsigned int i = 0; i < x; i++) {
-
-		// Allocate memory blocks for
-		// rows of each 2D array
-		array2d[i] = new long double[y];
-blinky
-	}
-
-	return array2d;
-}
-
-long double*** allocate3d(const unsigned int latitudes, const unsigned int longitudes, const unsigned int narea, long double*** spheremesh) {
-	// Dimensions of the 3D array
-	int x = latitudes, y = longitudes, z = narea;
-	int count = 0;
-
-	// Allocate memory blocks of size
-	// x i.e., no of 2D Arrays
-	spheremesh = new long double** [x];
-
-	for (int i = 0; i < x; i++) {
-
-		// Allocate memory blocks for
-		// rows of each 2D array
-		spheremesh[i] = new long double* [y];
-
-		for (int j = 0; j < y; j++) {
-
-			// Allocate memory blocks for
-			// columns of each 2D array
-			spheremesh[i][j] = new long double[z];
-		}
-	}
-
-	//for (int i = 0; i < x; i++) {
-	//    for (int j = 0; j < y; j++) {
-	//        for (int k = 0; k < z; k++) {
-
-	//            // Assign values to the
-	//            // memory blocks created
-	//            spheremesh[i][j][k] = ++count;
-	//            std::cout << spheremesh[i][j][k] << std::endl;
-	//        }
-	//    }
-	//}
-	std::cout << latitudes << " " << longitudes << " " << narea << std::endl;
-	//int *** ispheremesh = new int **[latitudes];
-	//for(unsigned int i = 0; i < latitudes; i ++){
-	//  ispheremesh[i] = new int *[longitudes];
-	//  for(unsigned int j = 0; j < narea; j ++){
-	//    ispheremesh[i][j] = new int [narea];
-	//  }
-	//}
-	printf("Address: %X \n", spheremesh);
-	printf("Check value: %d \n", spheremesh[10][10][3]);
-	return spheremesh;
-}
 long double angleof(double x, double y)
 {
 	long double angle;
@@ -109,12 +47,12 @@ long double angleof(double x, double y)
 	}
 	return angle;
 }
-long double*** compute_spheremesh(const double radius, const unsigned int latitudes, const unsigned int longitudes, long double*** spheremesh) {
+long double*** compute_spheremesh(const double radius, const unsigned int latitudes, const unsigned int longitudes) {
 	//generate sphere mesh
 		//const int latitudes=150;//change this number for more precision
 		//const int longitudes=150; //change this number for more precision
 		//long double spheremesh[latitudes][longitudes][4]; //an array that contains all the coordinates in the mesh. The coordinates will be (x,y,z,area)
-	spheremesh = allocate3d(latitudes, longitudes, 4, spheremesh);
+	long double *** spheremesh = allocate3d(latitudes, longitudes, 4);
 	printf("Address 2: %X \n", spheremesh);
 	printf("Check value 2: %f \n", spheremesh[10][10][3]);
 	long double latitude = M_PI / (2 * latitudes); //note: 90 degrees north will be called 0 radians "latitude" here, and 90 degrees south will be called pi radians "latitude"
@@ -635,14 +573,12 @@ int checkcube(double radius, double s, double x, double y, double z)
 	}
 	return 0;
 }
-vector force(double x0, double y0, double z0, unsigned int longitudes, unsigned int latitudes, long double radius, int cube, double p, long double **cubes, const std::vector<int>& vect)
+vector force(double x0, double y0, double z0, unsigned int longitudes, unsigned int latitudes, long double radius, int cube, double p, long double **cubes, const std::vector<int>& vect, long double *** spheremesh)
 {
 	long double s = radius / cube;
 	long double h = s / 2;
 	vector sum(0,0,0);
 	auto start = std::chrono::high_resolution_clock::now();
-	long double*** spheremesh = nullptr;
-	spheremesh = compute_spheremesh(radius, latitudes, longitudes, spheremesh);
 	auto finish = std::chrono::high_resolution_clock::now();
 	auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start);
 	std::cout << "time of sphere: " << milliseconds.count() / 1000.0 << "s\n";
@@ -661,14 +597,12 @@ vector force(double x0, double y0, double z0, unsigned int longitudes, unsigned 
 	std::cout << "Calculated force: " << "(" << sum.X() << ", " << sum.Y() << ", " << sum.Z() << ")" << std::endl;
 	return sum;
 }
-vector torque(double x0, double y0, double z0, unsigned int longitudes, unsigned int latitudes, long double radius, int cube, double p,long double **cubes, const std::vector<int>& vect)
+vector torque(double x0, double y0, double z0, unsigned int longitudes, unsigned int latitudes, long double radius, int cube, double p,long double **cubes, const std::vector<int>& vect, long double *** spheremesh)
 {
 	long double s = radius / cube;
 	long double h = s / 2;
 	vector sum(0, 0, 0);
 	auto start = std::chrono::high_resolution_clock::now();
-	long double*** spheremesh = nullptr;
-	spheremesh = compute_spheremesh(radius, latitudes, longitudes, spheremesh);
 	auto finish = std::chrono::high_resolution_clock::now();
 	auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start);
 	std::cout << "time of sphere: " << milliseconds.count() / 1000.0 << "s\n";
@@ -715,16 +649,23 @@ int main()
 	double increment = time / 100;
 	long double** cubes = nullptr;
 	cubes = compute_cubes(radius, cube, cubes);
-	vector* velocities;
+  long double*** spheremesh = compute_spheremesh(radius, latitudes, longitudes);
+
+	long double **** velocities = allocate4d(3, cube, cube, cube);
 	int l = sizeof(cubes);
-	for (int i = 0; i <= l; i++)
-	{
-		velocities[i] = velocity(cubes[i][0], cubes[i][1], cubes[i][2]);
-	}
-	velocities = new vector  [l];
+	for (int x = 0; x < cube; x++)
+		for (int y = 0; y < cube; y++)
+			for (int z = 0; z < cube; z++)
+			{
+        // calculate i from x,y,z
+        int i = 0;
+				velocities[0][x][y][z] = velocity(cubes[i][0], cubes[i][1], cubes[i][2]).X();
+				velocities[1][x][y][z] = velocity(cubes[i][0], cubes[i][1], cubes[i][2]).Y();
+				velocities[2][x][y][z] = velocity(cubes[i][0], cubes[i][1], cubes[i][2]).Z();
+			}
 	assert(cubes != nullptr);
 	vector ucm(0, 0, 0);
-	vector xyz(spherex, spherey, spherez);
+	vector rcm(spherex, spherey, spherez);
 	vector angv(0, 0, 0);
 	std::vector <int> correctindexes;
 	for (unsigned long int kk = 0; kk < 8 * cube * cube * cube; kk++)
@@ -736,11 +677,11 @@ int main()
 	}
 	for (int i = 0; i < 100; i++)
 	{
-		vector F = force(xyz.X(), xyz.Y(), xyz.Z(), longitudes, latitudes, radius, cube, pressure,cubes,correctindexes);
-		angv = angv+torque(xyz.X(), xyz.Y(), xyz.Z(), longitudes, latitudes, radius, cube, pressure,cubes,correctindexes)*increment/(2*mass*radius*radius/5);
-		xyz = xyz + ucm * increment + F * (increment) * (increment) / (2 * mass);
+		vector F = force(rcm.X(), rcm.Y(), rcm.Z(), longitudes, latitudes, radius, cube, pressure, cubes, correctindexes, spheremesh);
+		angv = angv+torque(rcm.X(), rcm.Y(), rcm.Z(), longitudes, latitudes, radius, cube, pressure,cubes, correctindexes, spheremesh)*increment/(2*mass*radius*radius/5);
+		rcm = rcm + ucm * increment + F * (increment) * (increment) / (2 * mass);
 	}
-	std::cout << xyz.X() <<" " << xyz.Y()<<" " << xyz.Z();
+	std::cout << rcm.X() <<" " << rcm.Y()<<" " << rcm.Z();
 	
 	return 0;
 }
