@@ -1,5 +1,5 @@
-#ifndef MEM_HPP
-#define MEM_HPP
+#ifndef MY_MEM_HPP
+#define MY_MEM_HPP
 // Header file for memory management related utilities definitions
 #include <iostream>
 #include <math.h>
