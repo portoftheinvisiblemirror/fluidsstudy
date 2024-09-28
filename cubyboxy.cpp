@@ -163,24 +163,8 @@ static long double areal(const double radius, const double xlow, const double xu
 	return area;
 }
 
-vector velocity(double x, double y, double z)
-{
-	vector output(x+y+z,x*y*z,z);
-	return output;
-}
-vector diff(double x, double y, double z, int index)
-{
-	double f = 0.00001;
-	switch (index)
-	{
-	case 1:
-		return (velocity(x + f, y, z) - velocity(x, y, z)) / f;
-	case 2:
-		return (velocity(x, y+f, z) - velocity(x, y, z)) / f;
-	case 3:
-		return (velocity(x, y, z+f) - velocity(x, y, z)) / f;
-	}
-}
+
+
 double pressure(double x, double y, double z)
 {
 	return x + y + z;
@@ -197,15 +181,7 @@ double plaplace(double x, double y, double z,double h)
 	
 	return (pressure(x+h,y,z)+ pressure(x - h, y, z)-2*pressure(x, y, z)+ pressure(x , y+h, z) + pressure(x, y-h, z) - 2 * pressure(x, y, z)+ pressure(x, y, z+h) + pressure(x, y, z-h) - 2 * pressure(x, y, z))/h/h;
 }
-vector vadvecv(double x, double y, double z)
-{
-	vector v = velocity(x, y, z);
-	vector diff1 = diff(x, y, z, 1);
-	vector diff2 = diff(x, y, z, 2);
-	vector diff3 = diff(x, y, z, 3);
-	vector result(v.X()*diff1.X() +v.Y()*diff2.X()+v.Z()*diff3.X(), v.X() * diff1.Y() + v.Y() * diff2.Y() + v.Z() * diff3.Y(), v.X() * diff1.Z() + v.Y() * diff2.Z() + v.Z() * diff3.Z());
-	return result;
-}
+
 //vector vfirst(vector* velocities)
 //{
 //	vector fvelocities[sizeof(velocities)]; //0, 0, 0 -> 2*cube-1, 2*cube-1, 2*cube-1 base 2*cube, 4*cube*cube, 2*cube, 1
@@ -215,21 +191,7 @@ vector vadvecv(double x, double y, double z)
 //	}
 //	
 //}
-tensor shear(double x, double y, double z)
-{
-	vector c1 = diff(x, y,z,1);
-	vector c2 = diff(x, y, z, 2);
-	vector c3 = diff(x, y, z, 3);
-	tensor grad(c1, c2, c3);
-	return grad + grad.transpose();
-}
-tensor stress(double p, double x, double y, double z)
-{
-	double c[] = {p, 0, 0, 0, p, 0, 0, 0, p};
-	tensor pressure(c);
-	tensor output = pressure + shear(x,y,z);
-	return output;
-}
+
 static vector forcel(const double radius, const double xlow, const double xup, const double ylow, const double yup, const double zlow, const double zup, unsigned int latitudes, unsigned int longitudes, long double*** spheremesh,double p, double sx, double sy, double sz)
 {
 	//pt. 3 find the force
@@ -441,7 +403,7 @@ int main()
 	cubes = compute_cubes(radius, cube, cubes);
   long double*** spheremesh = compute_spheremesh(radius, latitudes, longitudes);
 
-	long double **** velocities = allocate4d(3, cube, cube, cube);
+  long double **** velocities = allocate4d(4, cube, cube, cube);//and pressure
 	int l = sizeof(cubes);
 	for (int x = 0; x < cube; x++)
 		for (int y = 0; y < cube; y++)
@@ -452,6 +414,7 @@ int main()
 				velocities[0][x][y][z] = velocity(cubes[i][0], cubes[i][1], cubes[i][2]).X();
 				velocities[1][x][y][z] = velocity(cubes[i][0], cubes[i][1], cubes[i][2]).Y();
 				velocities[2][x][y][z] = velocity(cubes[i][0], cubes[i][1], cubes[i][2]).Z();
+				velocities[3][x][y][z] = pressure;
 			}
 	assert(cubes != nullptr);
 	vector ucm(0, 0, 0);
@@ -472,6 +435,7 @@ int main()
 		rcm = rcm + ucm * increment + F * (increment) * (increment) / (2 * mass);
 	}
 	std::cout << rcm.X() <<" " << rcm.Y()<<" " << rcm.Z();
+
 	
 	return 0;
 }
