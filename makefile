@@ -14,4 +14,4 @@ test4dalloc: test4dalloc.o mem.o utilities.o
 	g++ -O3 -o $@ $^
 	objdump -d $@ > assembly.txt
 clean:
-	rm cubyboxy cubyboxy.o mem.o utilities.o
+	rm cubyboxy cubyboxy.o mem.o utilities.o test4dalloc.o
