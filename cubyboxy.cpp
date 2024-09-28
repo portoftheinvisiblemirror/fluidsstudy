@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <chrono>
 #include <vector>
-
+#include "utilities.hpp"
 #include "mem.hpp"
 #include "vector.hpp"
 #include "tensor.hpp"
@@ -325,6 +325,21 @@ int checkcube(double radius, double s, double x, double y, double z)
 	}
 	return 0;
 }
+tensor gradv(double x, double y, double z)
+{
+	vector c1 = diff(x, y, z, 1);
+	vector c2 = diff(x, y, z, 2);
+	vector c3 = diff(x, y, z, 3);
+	tensor grad(c1, c2, c3);
+	return grad;
+}
+vector divstress(int x, int y, int z, tensor ***stresses)
+{
+	tensor temp = stresses[x][y][z].transpose();
+	//sum(diff1()column1stresstranspose), sum(diff2()column2stresstranspose), sum(diff3()column3stresstranspose)
+}
+
+
 vector force(double x0, double y0, double z0, unsigned int longitudes, unsigned int latitudes, long double radius, int cube, double p, long double **cubes, const std::vector<int>& vect, long double *** spheremesh)
 {
 	long double s = radius / cube;
@@ -410,11 +425,20 @@ int main()
 			for (int z = 0; z < cube; z++)
 			{
         // calculate i from x,y,z
-        int i = 0;
+        int i = x+ y * (2 * cube) + z* (2 * cube)* (2 * cube);
 				velocities[0][x][y][z] = velocity(cubes[i][0], cubes[i][1], cubes[i][2]).X();
 				velocities[1][x][y][z] = velocity(cubes[i][0], cubes[i][1], cubes[i][2]).Y();
 				velocities[2][x][y][z] = velocity(cubes[i][0], cubes[i][1], cubes[i][2]).Z();
 				velocities[3][x][y][z] = pressure;
+			}
+	tensor *** stresses = allocate3dt(cube, cube, cube);
+	for (int x = 0; x < cube; x++)
+		for (int y = 0; y < cube; y++)
+			for (int z = 0; z < cube; z++)
+			{
+				// calculate i from x,y,z
+				int i = x + y * (2 * cube) + z * (2 * cube) * (2 * cube);
+				stresses[x][y][z] = stress(pressure,cubes[i][0], cubes[i][1], cubes[i][2]);
 			}
 	assert(cubes != nullptr);
 	vector ucm(0, 0, 0);
@@ -435,7 +459,8 @@ int main()
 		rcm = rcm + ucm * increment + F * (increment) * (increment) / (2 * mass);
 	}
 	std::cout << rcm.X() <<" " << rcm.Y()<<" " << rcm.Z();
-
+	//vodt=divstress-gradv*v
+	
 	
 	return 0;
 }

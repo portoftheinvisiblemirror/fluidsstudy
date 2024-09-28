@@ -28,6 +28,23 @@ vector diff(double x, double y, double z, int index)
 		return (velocity(x, y, z + f) - velocity(x, y, z)) / f;
 	}
 }
+vector griddif(vector*** a, int b)
+{
+	//is edge top?
+	//
+	//is edge bottom?
+	vector v(0, 0, 0);
+	//switch (b)
+	//{
+	//case 1:
+	//	//diifx
+	//case 2:
+	//	//diffy
+	//case 3:
+	//	//diffz
+	//}
+	return v;
+}
 vector velocity(double x, double y, double z)
 {
 	vector output(x + y + z, x * y * z, z);

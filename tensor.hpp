@@ -1,9 +1,18 @@
 #ifndef MY_TENSOR_HPP
 #define MY_TENSOR_HPP
+#include "vector.hpp"
+#include <iostream>
 class tensor {
 private:
 	vector column1, column2, column3;
 public:
+	tensor()
+	{
+		vector v1(-1,-1,-1), v2(-1,-1,-1), v3(-1,-1,-1);
+		column1 = v1;
+		column2 = v2;
+		column3 = v3;
+	}
 	tensor(vector v1, vector v2, vector v3)
 	{
 		column1 = v1;

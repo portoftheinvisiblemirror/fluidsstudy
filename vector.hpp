@@ -1,5 +1,6 @@
 #ifndef MY_VECTOR_HPP
 #define MY_VECTOR_HPP
+#include <cmath>
 class vector {
 private:
 	double x, y, z; //coordinates
