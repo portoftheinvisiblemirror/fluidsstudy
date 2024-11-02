@@ -48,7 +48,7 @@ long double*** allocate3d(const unsigned int latitudes, const unsigned int longi
 	//        }
 	//    }
 	//}
-	//std::cout << latitudes << " " << longitudes << " " << narea << std::endl;
+	std::cout << latitudes << " " << longitudes << " " << narea << std::endl;
 	//int *** ispheremesh = new int **[latitudes];
 	//for(unsigned int i = 0; i < latitudes; i ++){
 	//  ispheremesh[i] = new int *[longitudes];
@@ -122,22 +122,6 @@ long double**** allocate4d(const unsigned int nc, const unsigned int nx, const u
 			for (int k = 0; k < nz; k++) {
 				ptr[i][j][k] = new long double [nz];
 			} 
-		}
-	}
-#ifdef DEBUG
-	printf("Address: %X \n", ptr);
-#endif
-	return ptr;
-}
-vector*** allocate3dv(const unsigned int nc, const unsigned int nx, const unsigned int ny) {
-	// Allocate memory blocks of size
-	// nc, nx, ny, nz
-	vector*** ptr = new vector** [nc]; // ptr is a pointer to an array of 3d matrices
-
-	for (int i = 0; i < nc; i++) {
-		ptr[i] = new vector* [nx]; // ptr[i] is a pointer to an array 2d matrices
-		for (int j = 0; j < nx; j++) {
-			ptr[i][j] = new vector [ny];
 		}
 	}
 #ifdef DEBUG

@@ -14,5 +14,4 @@ long double** allocate2d(const unsigned int x, const unsigned int y, long double
 long double*** allocate3d(const unsigned int latitudes, const unsigned int longitudes, const unsigned int narea);
 tensor*** allocate3dt(const unsigned int latitudes, const unsigned int longitudes, const unsigned int narea);
 long double**** allocate4d(const unsigned int nc, const unsigned int nx, const unsigned int ny, const unsigned int nz);
-vector*** allocate3dv(const unsigned int nc, const unsigned int nx, const unsigned int ny);
 #endif

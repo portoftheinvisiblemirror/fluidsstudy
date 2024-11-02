@@ -1,6 +1,5 @@
 #include "utilities.hpp"
 #include "vector.hpp"
-#include "mem.hpp"
 tensor shear(double x, double y, double z)
 {
 	vector c1 = diff(x, y, z, 1);
@@ -29,114 +28,26 @@ vector diff(double x, double y, double z, int index)
 		return (velocity(x, y, z + f) - velocity(x, y, z)) / f;
 	}
 }
-tensor sheara(double**** a, int x, int y, int z)
+vector griddif(vector*** a, int b)
 {
-	vector c1 = diff(x, y, z, 1);
-	vector c2 = diff(x, y, z, 2);
-	vector c3 = diff(x, y, z, 3);
-	tensor grad(c1, c2, c3);
-	return grad + grad.transpose();
-}
-double partdif(long double **** a,int x, int y, int z, int n, double h, int d,int e)//array,x,y,z ,number of spacings, spacing, component of vector, direction of differentiation: 0=x,1=y,2=z
-{
-	double answer = 0;
-	switch (e)
-	{
-	case 0://x diff
-		if (x >= 1) 
-		{
-			if (x < n - 1)//center
-			{
-				answer = (a[d][x + 1][y][z] -a[d][x-1][y][z])/2/h;
-			}
-			else//left side
-			{
-				answer = (-3*a[d][x][y][z] + 4*a[d][x + 1][y][z] - 1 * a[d][x + 2][y][z]) / 2 / h;
-			}
-		}
-		else//right side
-		{
-			answer = (3 * a[d][x][y][z] - 4 * a[d][x - 1][y][z] + 1 * a[d][x - 2][y][z]) / 2 / h;
-		}
-	case 1: //y diff
-		if (y >= 1)
-		{
-			if (y < n - 1)
-			{
-				answer = (a[d][x][y+1][z] - a[d][x][y-1][z]) / 2 / h;
-			}
-			else
-			{
-				answer = (-3 * a[d][x][y][z] + 4 * a[d][x][y+1][z] - 1 * a[d][x][y+2][z]) / 2 / h;
-			}
-		}
-		else
-		{
-			answer = (3 * a[d][x][y][z] - 4 * a[d][x][y-1][z] + 1 * a[d][x][y-2][z]) / 2 / h;
-		}
-	case 2:
-		//diffz
-		if (z >= 1)
-		{
-			if (z < n - 1)
-			{
-				answer = (a[d][x][y][z+1] - a[d][x][y][z-1]) / 2 / h;
-			}
-			else
-			{
-				answer = (-3 * a[d][x][y][z] + 4 * a[d][x][y][z+1] - 1 * a[d][x][y][z+2]) / 2 / h;
-			}
-		}
-		else
-		{
-			answer = (3 * a[d][x][y][z] - 4 * a[d][x][y][z-1] + 1 * a[d][x][y][z-2]) / 2 / h;
-		}
-	}
-	return answer;
-}
-vector *** divtenall(tensor*** a, const int n, double h)
-{
-	long double **** array= allocate4d(9,n,n,n);
-	for (int i = 0; i < n; i++)
-	{
-		for (int j = 0; j < n; j++)
-		{
-			for (int k = 0; k < n; k++)
-			{
-				for (int l = 1; l <= 3; l++)//column
-				{
-					for (int m = 1; m <= 3; m++)//row
-					{
-						array[3 * l + m - 4][i][j][k] = a[i][j][k].getValue(l, m); //0,3,6  1,4,7   2,4,8
-					}
-				}
-			}
-		}
-	}
-	vector *** answer = allocate3dv(n,n,n);
-	for (int x = 0; x < n; x++)
-	{
-		for (int y = 0; y < n; y++)
-		{
-			for (int z = 0; z < n; z++)
-			{
-				long double temp[3] = { 0,0,0 };
-				for (int l = 1; l <= 3; l++)//column
-				{
-					for (int m = 1; m <= 3; m++)//row
-					{
-						temp[l-1] += partdif(array, x, y, z, n, h, 3 * l + m - 4, m);
-					}
-				}
-				answer[x][y][z].set(temp[0],temp[1],temp[2]);
-			}
-		}
-	}
-	return answer;
+	//is edge top?
+	//
+	//is edge bottom?
+	vector v(0, 0, 0);
+	//switch (b)
+	//{
+	//case 1:
+	//	//diifx
+	//case 2:
+	//	//diffy
+	//case 3:
+	//	//diffz
+	//}
+	return v;
 }
 vector velocity(double x, double y, double z)
 {
-	vector output(4*y*y,0,0);
+	vector output(x + y + z, x * y * z, z);
 	return output;
 }
 vector divvadvecv(double x, double y, double z)
