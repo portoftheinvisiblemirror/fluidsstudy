@@ -1,6 +1,7 @@
 #ifndef MY_VECTOR_HPP
 #define MY_VECTOR_HPP
 #include <cmath>
+#include "tensor.hpp"
 class vector {
 private:
 	double x, y, z; //coordinates
@@ -66,6 +67,11 @@ public:
 	vector operator*(double c)
 	{
 		vector result(x * c, y * c, z * c);
+		return result;
+	}
+	vector operator*(tensor t)
+	{
+		vector result(*this * t.getColumn(1), *this * t.getColumn(2), *this * t.getColumn(3));
 		return result;
 	}
 	//scalar division

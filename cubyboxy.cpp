@@ -52,12 +52,7 @@ long double angleof(double x, double y)
 }
 long double*** compute_spheremesh(const double radius, const unsigned int latitudes, const unsigned int longitudes) {
 	//generate sphere mesh
-		//const int latitudes=150;//change this number for more precision
-		//const int longitudes=150; //change this number for more precision
-		//long double spheremesh[latitudes][longitudes][4]; //an array that contains all the coordinates in the mesh. The coordinates will be (x,y,z,area)
 	long double *** spheremesh = allocate3d(latitudes, longitudes, 4);
-	printf("Address 2: %X \n", spheremesh);
-	printf("Check value 2: %f \n", spheremesh[10][10][3]);
 	long double latitude = M_PI / (2 * latitudes); //note: 90 degrees north will be called 0 radians "latitude" here, and 90 degrees south will be called pi radians "latitude"
 	for (unsigned int i = 0; i < latitudes; i++)
 	{
@@ -198,11 +193,15 @@ static vector forcel(const double radius, const double xlow, const double xup, c
 	// maybe restrict the range of indices that can potentially intersect with the cube to speed up area calculation.
 	vector force(0,0,0);
 	unsigned int lowlat = latitudes;
-	if (zlow < -radius)
+	if (zlow > -radius)
 		lowlat = (int)ceil((acos(zlow / radius) - M_PI / (2 * latitudes)) / (M_PI / (latitudes)));
 	unsigned int uplat = 0;
-	if (uplat > radius)
+	if (zup < radius)
 		uplat = (int)floor((acos(zup / radius) - M_PI / (2 * latitudes)) / (M_PI / (latitudes)));
+	if (zup <-radius || zlow >radius)
+	{
+		return force;
+	}
 	unsigned int lowlong = 0;
 	unsigned int uplong = longitudes;
 	long double angles[4] = { angleof(xlow, ylow), angleof(xlow, yup), angleof(xup, ylow), angleof(xup, yup) };
@@ -256,11 +255,15 @@ static vector torquel(const double radius, const double xlow, const double xup, 
 	// maybe restrict the range of indices that can potentially intersect with the cube to speed up area calculation.
 	vector torque(0, 0, 0);
 	unsigned int lowlat = latitudes;
-	if (zlow < -radius)
+	if (zlow > -radius)
 		lowlat = (int)ceil((acos(zlow / radius) - M_PI / (2 * latitudes)) / (M_PI / (latitudes)));
 	unsigned int uplat = 0;
-	if (uplat > radius)
+	if (zup < radius)
 		uplat = (int)floor((acos(zup / radius) - M_PI / (2 * latitudes)) / (M_PI / (latitudes)));
+	if (zup <-radius || zlow >radius)
+	{
+		return torque;
+	}
 	unsigned int lowlong = 0;
 	unsigned int uplong = longitudes;
 	long double angles[4] = { angleof(xlow, ylow), angleof(xlow, yup), angleof(xup, ylow), angleof(xup, yup) };
@@ -325,31 +328,28 @@ int checkcube(double radius, double s, double x, double y, double z)
 	}
 	return 0;
 }
-tensor gradv(double x, double y, double z)
+tensor gradv(double x, double y, double z, int n, double h, long double**** a)
 {
-	vector c1 = diff(x, y, z, 1);
-	vector c2 = diff(x, y, z, 2);
-	vector c3 = diff(x, y, z, 3);
+
+	vector c1(partdif(a, x, y, z, n, h, 1, 1), partdif(a, x, y, z, n, h, 2, 1), partdif(a, x, y, z, n, h, 3, 1));
+	vector c2(partdif(a, x, y, z, n, h, 1, 2), partdif(a, x, y, z, n, h, 2, 2), partdif(a, x, y, z, n, h, 3, 2));
+	vector c3(partdif(a, x, y, z, n, h, 1, 3), partdif(a, x, y, z, n, h, 2, 3), partdif(a, x, y, z, n, h, 3, 3));
 	tensor grad(c1, c2, c3);
 	return grad;
 }
-vector divstress(int x, int y, int z, tensor ***stresses)
-{
-	tensor temp = stresses[x][y][z].transpose();
-	//sum(diff1()column1stresstranspose), sum(diff2()column2stresstranspose), sum(diff3()column3stresstranspose)
-}
 
 
-vector force(double x0, double y0, double z0, unsigned int longitudes, unsigned int latitudes, long double radius, int cube, double p, long double **cubes, const std::vector<int>& vect, long double *** spheremesh)
+
+vector force(double x0, double y0, double z0, unsigned int longitudes, unsigned int latitudes, long double radius, long double cl,int cube, double p, long double **cubes, const std::vector<int>& vect, long double *** spheremesh)
 {
-	long double s = radius / cube;
+	long double s = cl / cube;
 	long double h = s / 2;
 	vector sum(0,0,0);
-	auto start = std::chrono::high_resolution_clock::now();
+	/*auto start = std::chrono::high_resolution_clock::now();
 	auto finish = std::chrono::high_resolution_clock::now();
 	auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start);
 	std::cout << "time of sphere: " << milliseconds.count() / 1000.0 << "s\n";
-	start = std::chrono::high_resolution_clock::now();
+	start = std::chrono::high_resolution_clock::now();*/
 	int l = 0;
 	assert(spheremesh != nullptr);
 	for (auto &kk :vect)
@@ -357,23 +357,23 @@ vector force(double x0, double y0, double z0, unsigned int longitudes, unsigned 
 			double a = cubes[kk][0] - h, b = cubes[kk][0] + h, c = cubes[kk][1] - h, d = cubes[kk][1] + h, e = cubes[kk][2] - h, f = cubes[kk][2] + h;
 			sum = sum+ forcel(radius, a, b, c, d, e, f, latitudes, longitudes, spheremesh,p,x0,y0,z0);
 	}
-	finish = std::chrono::high_resolution_clock::now();
+	/*finish = std::chrono::high_resolution_clock::now();
 	milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start);
 	std::cout << "time of area: " << milliseconds.count() / 1000.0 << "s\n";
 	std::cout << "Expected area: " << 4 * M_PI * radius * radius << std::endl;
-	std::cout << "Calculated force: " << "(" << sum.X() << ", " << sum.Y() << ", " << sum.Z() << ")" << std::endl;
+	std::cout << "Calculated force: " << "(" << sum.X() << ", " << sum.Y() << ", " << sum.Z() << ")" << std::endl;*/
 	return sum;
 }
-vector torque(double x0, double y0, double z0, unsigned int longitudes, unsigned int latitudes, long double radius, int cube, double p,long double **cubes, const std::vector<int>& vect, long double *** spheremesh)
+vector torque(double x0, double y0, double z0, unsigned int longitudes, unsigned int latitudes, long double radius, long double cl, int cube, double p,long double **cubes, const std::vector<int>& vect, long double *** spheremesh)
 {
-	long double s = radius / cube;
+	long double s = cl / cube;
 	long double h = s / 2;
 	vector sum(0, 0, 0);
-	auto start = std::chrono::high_resolution_clock::now();
+	/*auto start = std::chrono::high_resolution_clock::now();
 	auto finish = std::chrono::high_resolution_clock::now();
 	auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start);
 	std::cout << "time of sphere: " << milliseconds.count() / 1000.0 << "s\n";
-	start = std::chrono::high_resolution_clock::now();
+	start = std::chrono::high_resolution_clock::now();*/
 	int l = 0;
 	assert(spheremesh != nullptr);
 	for (auto &kk :vect)
@@ -381,14 +381,14 @@ vector torque(double x0, double y0, double z0, unsigned int longitudes, unsigned
 			double a = cubes[kk][0] - h, b = cubes[kk][0] + h, c = cubes[kk][1] - h, d = cubes[kk][1] + h, e = cubes[kk][2] - h, f = cubes[kk][2] + h;
 			sum = sum + torquel(radius, a, b, c, d, e, f, latitudes, longitudes, spheremesh, p, x0, y0, z0);
 	}
-	finish = std::chrono::high_resolution_clock::now();
+	/*finish = std::chrono::high_resolution_clock::now();
 	milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start);
 	std::cout << "time of area: " << milliseconds.count() / 1000.0 << "s\n";
 	std::cout << "Expected area: " << 4 * M_PI * radius * radius << std::endl;
 	std::cout << "Calculated torque: " << "(" << sum.X() << ", " << sum.Y() << ", " << sum.Z() << ")" << std::endl;
-	return sum;
+	*/return sum;
 }
-int main()
+int bleargh()
 {
 	std::cout << "Input xyz coordinates of the sphere in this format (separated by spaces no commas): x y z\n";
 	double spherex, spherey, spherez;
@@ -418,11 +418,11 @@ int main()
 	cubes = compute_cubes(radius, cube, cubes);
   long double*** spheremesh = compute_spheremesh(radius, latitudes, longitudes);
 
-  long double **** velocities = allocate4d(4, cube, cube, cube);//and pressure
+  long double **** velocities = allocate4d(4, 2*cube, 2*cube, 2*cube);//and pressure
 	int l = sizeof(cubes);
-	for (int x = 0; x < cube; x++)
-		for (int y = 0; y < cube; y++)
-			for (int z = 0; z < cube; z++)
+	for (int x = 0; x < 2*cube; x++)
+		for (int y = 0; y < 2*cube; y++)
+			for (int z = 0; z < 2*cube; z++)
 			{
         // calculate i from x,y,z
         int i = x+ y * (2 * cube) + z* (2 * cube)* (2 * cube);
@@ -431,10 +431,10 @@ int main()
 				velocities[2][x][y][z] = velocity(cubes[i][0], cubes[i][1], cubes[i][2]).Z();
 				velocities[3][x][y][z] = pressure;
 			}
-	tensor *** stresses = allocate3dt(cube, cube, cube);
-	for (int x = 0; x < cube; x++)
-		for (int y = 0; y < cube; y++)
-			for (int z = 0; z < cube; z++)
+	tensor *** stresses = allocate3dt(2*cube, 2*cube, 2*cube);
+	for (int x = 0; x < 2*cube; x++)
+		for (int y = 0; y < 2*cube; y++)
+			for (int z = 0; z < 2*cube; z++)
 			{
 				// calculate i from x,y,z
 				int i = x + y * (2 * cube) + z * (2 * cube) * (2 * cube);
@@ -454,13 +454,57 @@ int main()
 	}
 	for (int i = 0; i < 100; i++)
 	{
-		vector F = force(rcm.X(), rcm.Y(), rcm.Z(), longitudes, latitudes, radius, cube, pressure, cubes, correctindexes, spheremesh);
-		angv = angv+torque(rcm.X(), rcm.Y(), rcm.Z(), longitudes, latitudes, radius, cube, pressure,cubes, correctindexes, spheremesh)*increment/(2*mass*radius*radius/5);
+		vector F = force(rcm.X(), rcm.Y(), rcm.Z(), longitudes, latitudes, radius, radius ,cube, pressure, cubes, correctindexes, spheremesh);
+		angv = angv+torque(rcm.X(), rcm.Y(), rcm.Z(), longitudes, latitudes, radius, radius,cube, pressure,cubes, correctindexes, spheremesh)*increment/(2*mass*radius*radius/5);
 		rcm = rcm + ucm * increment + F * (increment) * (increment) / (2 * mass);
+		vector *** stressdiv= divtenall(stresses, 2 * cube, radius / cube);
+		for (int x = 0; x < 2 * cube; x++)
+			for (int y = 0; y < 2 * cube; y++)
+				for (int z = 0; z < 2 * cube; z++)
+				{
+					// calculate i from x,y,z
+					int i = x + y * (2 * cube) + z * (2 * cube) * (2 * cube);
+					stresses[x][y][z] = stress(pressure, cubes[i][0], cubes[i][1], cubes[i][2]);
+				}
 	}
 	std::cout << rcm.X() <<" " << rcm.Y()<<" " << rcm.Z();
 	//vodt=divstress-gradv*v
 	
 	
 	return 0;
+}
+int main()
+{
+	int latitudes=1250, longitudes=1250;
+	double cube=80;
+	long double** cubes = nullptr;
+	cubes = compute_cubes(50, cube, cubes);
+	double radius = 2;
+	double p = 1;
+	std::vector <int> correctindexes;
+
+	long double*** spheremesh = compute_spheremesh(radius, latitudes, longitudes);
+	for (int i = 1; i <= 25; i++)
+	{
+		vector sum(0,0,0);
+		vector sumt(0, 0, 0);
+		for (unsigned long int kk = 0; kk < 8 * cube * cube * cube; kk++)
+		{
+			if (checkcube(radius, 50 / cube, cubes[kk][0], cubes[kk][1], cubes[kk][2]) == 0)
+			{
+				correctindexes.push_back(kk);
+			}
+		}
+
+
+			sumt= torque(0, p, 0, longitudes, latitudes, radius,50, cube, 5, cubes, correctindexes, spheremesh);
+			sum = force(0, p, 0, longitudes, latitudes, radius, 50,cube, 5, cubes, correctindexes, spheremesh);
+			correctindexes.clear();
+
+		std::cout << radius<<" " << sum.X() << " "<< sum.Y() << " " <<sum.Z() << "  " << sumt.X()<< " " << sumt.Y() << " " << sumt.Z() << " " << abs(1 - sum.X() / (8 * M_PI * radius*radius*radius * 4 / 3)) * 100 << " " << abs(1 - sumt.Z() / (-8 * M_PI*p * radius*radius*radius * 4 / 3)) * 100 << "\n";
+		radius += 2;
+		spheremesh = nullptr;
+		spheremesh = compute_spheremesh(radius, latitudes, longitudes);
+	}
+
 }
