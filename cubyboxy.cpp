@@ -469,12 +469,15 @@ int bleargh()
 					// calculate i from x,y,z
 					int i = x + y * (2 * cube) + z * (2 * cube) * (2 * cube);
 					vector vel(velocities[0][x][y][z], velocities[1][x][y][z], velocities[2][x][y][z]);
-					vector secterm = gradv(x, y, z, 2 * cube, radius / cube, velocities).transpose() * vel;
+					tensor grad = gradv(x, y, z, 2 * cube, radius / cube, velocities);
+					vector secterm = grad.transpose() * vel;
 					vector change = stressdiv[x][y][z] - secterm;
 					velocities[0][x][y][z] += increment * change.X();
 					velocities[1][x][y][z] += increment * change.Y();
 					velocities[2][x][y][z] += increment * change.Z();
-					stresses[x][y][z] = stress(pressure, cubes[i][0], cubes[i][1], cubes[i][2]);
+					double a[] = { pressure, 0, 0, 0, pressure, 0, 0, 0, pressure };
+					tensor p(a);
+					stresses[x][y][z] = grad.transpose()+grad;
 				}
 	}
 	std::cout << rcm.X() <<" " << rcm.Y()<<" " << rcm.Z();
