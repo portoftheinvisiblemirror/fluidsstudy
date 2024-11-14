@@ -1,7 +1,8 @@
 #ifndef MY_TENSOR_HPP
 #define MY_TENSOR_HPP
-#include "vector.hpp"
+
 #include <iostream>
+#include "vector.hpp"
 class tensor {
 private:
 	vector column1, column2, column3;

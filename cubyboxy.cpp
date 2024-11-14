@@ -210,6 +210,8 @@ static vector forcel(const double radius, const double xlow, const double xup, c
 	{
 		lowlong = (int)floor(angles[0] / (2 * M_PI / longitudes));
 		uplong = (int)ceil(angles[3] / (2 * M_PI / longitudes));
+		if (uplong > longitudes)
+			uplong = longitudes;
 	}
 	if (!(xlow > 0 && ylow < 0 && yup >= 0)) //case 1: the polar axis does not intersect the projection to the x-y plane, or the lower y-bound is the polar axis
 	{
@@ -272,6 +274,8 @@ static vector torquel(const double radius, const double xlow, const double xup, 
 	{
 		lowlong = (int)floor(angles[0] / (2 * M_PI / longitudes));
 		uplong = (int)ceil(angles[3] / (2 * M_PI / longitudes));
+		if (uplong > longitudes)
+			uplong = longitudes;
 	}
 	if (!(xlow > 0 && ylow < 0 && yup >= 0)) //case 1: the polar axis does not intersect the projection to the x-y plane, or the lower y-bound is the polar axis
 	{
@@ -457,13 +461,19 @@ int bleargh()
 		vector F = force(rcm.X(), rcm.Y(), rcm.Z(), longitudes, latitudes, radius, radius ,cube, pressure, cubes, correctindexes, spheremesh);
 		angv = angv+torque(rcm.X(), rcm.Y(), rcm.Z(), longitudes, latitudes, radius, radius,cube, pressure,cubes, correctindexes, spheremesh)*increment/(2*mass*radius*radius/5);
 		rcm = rcm + ucm * increment + F * (increment) * (increment) / (2 * mass);
-		vector *** stressdiv= divtenall(stresses, 2 * cube, radius / cube);
+		vector *** stressdiv= divtenall(stresses, 2 * cube, radius / cube); //cjamge radois to cube lengths
 		for (int x = 0; x < 2 * cube; x++)
 			for (int y = 0; y < 2 * cube; y++)
 				for (int z = 0; z < 2 * cube; z++)
 				{
 					// calculate i from x,y,z
 					int i = x + y * (2 * cube) + z * (2 * cube) * (2 * cube);
+					vector vel(velocities[0][x][y][z], velocities[1][x][y][z], velocities[2][x][y][z]);
+					vector secterm = gradv(x, y, z, 2 * cube, radius / cube, velocities).transpose() * vel;
+					vector change = stressdiv[x][y][z] - secterm;
+					velocities[0][x][y][z] += increment * change.X();
+					velocities[1][x][y][z] += increment * change.Y();
+					velocities[2][x][y][z] += increment * change.Z();
 					stresses[x][y][z] = stress(pressure, cubes[i][0], cubes[i][1], cubes[i][2]);
 				}
 	}
@@ -475,7 +485,7 @@ int bleargh()
 }
 int main()
 {
-	int latitudes=1250, longitudes=1250;
+	int latitudes=1000, longitudes=1000;
 	double cube=80;
 	long double** cubes = nullptr;
 	cubes = compute_cubes(50, cube, cubes);
@@ -484,6 +494,7 @@ int main()
 	std::vector <int> correctindexes;
 
 	long double*** spheremesh = compute_spheremesh(radius, latitudes, longitudes);
+	std::cout << "radius forcex forcey forcez torquex torquey torquez error1 error2\n";
 	for (int i = 1; i <= 25; i++)
 	{
 		vector sum(0,0,0);
@@ -501,7 +512,9 @@ int main()
 			sum = force(0, p, 0, longitudes, latitudes, radius, 50,cube, 5, cubes, correctindexes, spheremesh);
 			correctindexes.clear();
 
-		std::cout << radius<<" " << sum.X() << " "<< sum.Y() << " " <<sum.Z() << "  " << sumt.X()<< " " << sumt.Y() << " " << sumt.Z() << " " << abs(1 - sum.X() / (8 * M_PI * radius*radius*radius * 4 / 3)) * 100 << " " << abs(1 - sumt.Z() / (-8 * M_PI*p * radius*radius*radius * 4 / 3)) * 100 << "\n";
+
+		std::cout << radius<<" " << sum.X() << " "<< sum.Y() << " " <<sum.Z() << "  " << sumt.X()<< " " << sumt.Y() << " " << sumt.Z() << " "
+			<< abs(1 - sum.X() / (8 * M_PI * radius*radius*radius * 4 / 3)) * 100 << " " << abs(1 - sumt.Z() / (-8 * M_PI*p * radius*radius*radius * 4 / 3)) * 100 << "\n";
 		radius += 2;
 		spheremesh = nullptr;
 		spheremesh = compute_spheremesh(radius, latitudes, longitudes);
