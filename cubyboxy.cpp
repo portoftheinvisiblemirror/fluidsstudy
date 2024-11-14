@@ -7,10 +7,14 @@
 #include <algorithm>
 #include <chrono>
 #include <vector>
+
+#include <stdlib.h>
+
 #include "utilities.hpp"
 #include "mem.hpp"
 #include "vector.hpp"
 #include "tensor.hpp"
+#include "vtk.hpp"
 
 long double*** compute_spheremesh(const double radius, const unsigned int latitudes, const unsigned int longitudes, long double*** spheremesh);
 long double** compute_cubes(const double radius, const unsigned int cube, long double** cubes);
@@ -435,6 +439,7 @@ int bleargh()
 				velocities[2][x][y][z] = velocity(cubes[i][0], cubes[i][1], cubes[i][2]).Z();
 				velocities[3][x][y][z] = pressure;
 			}
+  writeVTKFile(0, velocities, 2*cube, 2*cube, 2*cube, radius/cube, radius/cube, radius/cube);
 	tensor *** stresses = allocate3dt(2*cube, 2*cube, 2*cube);
 	for (int x = 0; x < 2*cube; x++)
 		for (int y = 0; y < 2*cube; y++)
@@ -480,6 +485,7 @@ int bleargh()
 					stresses[x][y][z] = grad.transpose()+grad;
 				}
 	}
+  writeVTKFile(1, velocities, 2*cube, 2*cube, 2*cube, radius/cube, radius/cube, radius/cube);
 	std::cout << rcm.X() <<" " << rcm.Y()<<" " << rcm.Z();
 	//vodt=divstress-gradv*v
 	
@@ -488,6 +494,8 @@ int bleargh()
 }
 int main()
 {
+  bleargh();
+  exit(0);
 	int latitudes=1000, longitudes=1000;
 	double cube=80;
 	long double** cubes = nullptr;
