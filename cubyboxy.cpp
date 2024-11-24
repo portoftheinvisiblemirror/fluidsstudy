@@ -494,21 +494,23 @@ int bleargh()
 }
 int main()
 {
-  bleargh();
-  exit(0);
-	int latitudes=1000, longitudes=1000;
-	double cube=80;
+  //bleargh();
+  //exit(0);
+	int latitudes=5, longitudes=5;
+	double cube=7;
 	long double** cubes = nullptr;
-	cubes = compute_cubes(50, cube, cubes);
-	double radius = 2;
+	cubes = compute_cubes(1, cube, cubes);
+	double radius = 1;
 	double p = 1;
 	std::vector <int> correctindexes;
 
 	long double*** spheremesh = compute_spheremesh(radius, latitudes, longitudes);
-	std::cout << "radius forcex forcey forcez torquex torquey torquez error1 error2\n";
-	for (int i = 1; i <= 25; i++)
+	//std::cout << "radius forcex forcey forcez torquex torquey torquez error1 error2\n";
+	//
+	std::cout << "N area error\n";
+	for (int i = 1; i <= 200; i++)
 	{
-		vector sum(0,0,0);
+		/*vector sum(0,0,0);
 		vector sumt(0, 0, 0);
 		for (unsigned long int kk = 0; kk < 8 * cube * cube * cube; kk++)
 		{
@@ -526,8 +528,19 @@ int main()
 
 		std::cout << radius<<" " << sum.X() << " "<< sum.Y() << " " <<sum.Z() << "  " << sumt.X()<< " " << sumt.Y() << " " << sumt.Z() << " "
 			<< abs(1 - sum.X() / (8 * M_PI * radius*radius*radius * 4 / 3)) * 100 << " " << abs(1 - sumt.Z() / (-8 * M_PI*p * radius*radius*radius * 4 / 3)) * 100 << "\n";
-		radius += 2;
+		radius += 2;*/
+		double sum = 0;
+
+
+		for (unsigned long int kk=0; kk<8*cube*cube*cube; kk++)
+		{
+			if(checkcube(1,1/cube,cubes[kk][0], cubes[kk][1], cubes[kk][2])==0)
+			sum+=areal(1, cubes[kk][0]-1/cube/2, cubes[kk][0]+ 1 / cube / 2, cubes[kk][1]- 1 / cube / 2, cubes[kk][1]+ 1 / cube / 2, cubes[kk][2]- 1 / cube / 2, cubes[kk][2]+ 1 / cube / 2, latitudes, longitudes, spheremesh);
+		}
+		std::cout << latitudes << " " << sum << " " << 100 * abs(4 * M_PI - sum) / 4 / M_PI << "\n";
 		spheremesh = nullptr;
+		latitudes += 5;
+		longitudes = latitudes;
 		spheremesh = compute_spheremesh(radius, latitudes, longitudes);
 	}
 

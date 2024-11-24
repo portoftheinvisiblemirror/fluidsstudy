@@ -51,12 +51,13 @@ double partdif(long double **** a,int x, int y, int z, int n, double h, int d,in
 			}
 			else//left side
 			{
-				answer = (-3*a[d][x][y][z] + 4*a[d][x + 1][y][z] - 1 * a[d][x + 2][y][z]) / 2 / h;
+				answer = (3 * a[d][x][y][z] - 4 * a[d][x - 1][y][z] + 1 * a[d][x - 2][y][z]) / 2 / h;
+
 			}
 		}
 		else//right side
 		{
-			answer = (3 * a[d][x][y][z] - 4 * a[d][x - 1][y][z] + 1 * a[d][x - 2][y][z]) / 2 / h;
+			answer = (-3 * a[d][x][y][z] + 4 * a[d][x + 1][y][z] - 1 * a[d][x + 2][y][z]) / 2 / h;
 		}
 	case 1: //y diff
 		if (y >= 1)
@@ -67,12 +68,12 @@ double partdif(long double **** a,int x, int y, int z, int n, double h, int d,in
 			}
 			else
 			{
-				answer = (-3 * a[d][x][y][z] + 4 * a[d][x][y+1][z] - 1 * a[d][x][y+2][z]) / 2 / h;
+				answer = (3 * a[d][x][y][z] - 4 * a[d][x][y - 1][z] + 1 * a[d][x][y - 2][z]) / 2 / h;
 			}
 		}
 		else
 		{
-			answer = (3 * a[d][x][y][z] - 4 * a[d][x][y-1][z] + 1 * a[d][x][y-2][z]) / 2 / h;
+			answer = (-3 * a[d][x][y][z] + 4 * a[d][x][y + 1][z] - 1 * a[d][x][y + 2][z]) / 2 / h;
 		}
 	case 2:
 		//diffz
@@ -84,12 +85,12 @@ double partdif(long double **** a,int x, int y, int z, int n, double h, int d,in
 			}
 			else
 			{
-				answer = (-3 * a[d][x][y][z] + 4 * a[d][x][y][z+1] - 1 * a[d][x][y][z+2]) / 2 / h;
+				answer = (3 * a[d][x][y][z] - 4 * a[d][x][y][z - 1] + 1 * a[d][x][y][z - 2]) / 2 / h;
 			}
 		}
 		else
 		{
-			answer = (3 * a[d][x][y][z] - 4 * a[d][x][y][z-1] + 1 * a[d][x][y][z-2]) / 2 / h;
+			answer = (-3 * a[d][x][y][z] + 4 * a[d][x][y][z + 1] - 1 * a[d][x][y][z + 2]) / 2 / h;
 		}
 	}
 	return answer;
