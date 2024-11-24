@@ -484,8 +484,8 @@ int bleargh()
 					tensor p(a);
 					stresses[x][y][z] = grad.transpose()+grad;
 				}
+		writeVTKFile(i+1, velocities, 2*cube, 2*cube, 2*cube, radius/cube, radius/cube, radius/cube);
 	}
-  writeVTKFile(1, velocities, 2*cube, 2*cube, 2*cube, radius/cube, radius/cube, radius/cube);
 	std::cout << rcm.X() <<" " << rcm.Y()<<" " << rcm.Z();
 	//vodt=divstress-gradv*v
 	
