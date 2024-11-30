@@ -15,7 +15,9 @@
 #include "vector.hpp"
 #include "tensor.hpp"
 #include "vtk.hpp"
-
+#include <Eigen/Dense>
+ 
+using Eigen::MatrixXd;
 long double*** compute_spheremesh(const double radius, const unsigned int latitudes, const unsigned int longitudes, long double*** spheremesh);
 long double** compute_cubes(const double radius, const unsigned int cube, long double** cubes);
 
@@ -407,8 +409,10 @@ int bleargh()
 	std::cout << "Input the number of latitudes used in generating the spheremesh.";
 	std::cin >> latitudes;
 	std::cout << "What is the radius of the sphere?";
-	long double radius;
+	long double radius,hlength;
 	std::cin >> radius;
+	std::cout << "What is the half the entire length of the grid?";
+	std::cin >> hlength;
 	std::cout << "For the cartesian grid, by what factor should the step distance be smaller than the radius? (If you want 8*8 cubes, input 2, if you want 8*27 cubes, input 3 and so on)";
 	int cube;
 	std::cin >> cube;
@@ -423,7 +427,7 @@ int bleargh()
 	std::cin >> time;
 	double increment = time / 100;
 	long double** cubes = nullptr;
-	cubes = compute_cubes(radius, cube, cubes);
+	cubes = compute_cubes(hlength, cube, cubes);
   long double*** spheremesh = compute_spheremesh(radius, latitudes, longitudes);
 
   long double **** velocities = allocate4d(4, 2*cube, 2*cube, 2*cube);//and pressure
@@ -439,7 +443,7 @@ int bleargh()
 				velocities[2][x][y][z] = velocity(cubes[i][0], cubes[i][1], cubes[i][2]).Z();
 				velocities[3][x][y][z] = pressure;
 			}
-  writeVTKFile(0, velocities, 2*cube, 2*cube, 2*cube, radius/cube, radius/cube, radius/cube);
+  writeVTKFile(0, velocities, 2*cube, 2*cube, 2*cube, hlength/cube, hlength/cube, hlength/cube);
 	tensor *** stresses = allocate3dt(2*cube, 2*cube, 2*cube);
 	for (int x = 0; x < 2*cube; x++)
 		for (int y = 0; y < 2*cube; y++)
@@ -456,17 +460,27 @@ int bleargh()
 	std::vector <int> correctindexes;
 	for (unsigned long int kk = 0; kk < 8 * cube * cube * cube; kk++)
 	{
-		if (checkcube(radius, radius/cube, cubes[kk][0], cubes[kk][1], cubes[kk][2]) == 0)
+		if (checkcube(radius, hlength/cube, cubes[kk][0], cubes[kk][1], cubes[kk][2]) == 0)
 		{
 			correctindexes.push_back(kk);
 		}
 	}
 	for (int i = 0; i < 100; i++)
 	{
-		vector F = force(rcm.X(), rcm.Y(), rcm.Z(), longitudes, latitudes, radius, radius ,cube, pressure, cubes, correctindexes, spheremesh);
-		angv = angv+torque(rcm.X(), rcm.Y(), rcm.Z(), longitudes, latitudes, radius, radius,cube, pressure,cubes, correctindexes, spheremesh)*increment/(2*mass*radius*radius/5);
+		vector F = force(rcm.X(), rcm.Y(), rcm.Z(), longitudes, latitudes, radius, hlength ,cube, pressure, cubes, correctindexes, spheremesh);
+		angv = angv+torque(rcm.X(), rcm.Y(), rcm.Z(), longitudes, latitudes, radius, hlength,cube, pressure,cubes, correctindexes, spheremesh)*increment/(2*mass*radius*radius/5);
 		rcm = rcm + ucm * increment + F * (increment) * (increment) / (2 * mass);
-		vector *** stressdiv= divtenall(stresses, 2 * cube, radius / cube); //cjamge radois to cube lengths
+		VectorXd b(8*cube*cube*cube);
+		MatrixXd A(8*cube*cube*cube,8*cube*cube*cube);
+		int c=0;
+		for (int x = 0; x < 2 * cube; x++)
+			for (int y = 0; y < 2 * cube; y++)
+				for (int z = 0; z < 2 * cube; z++)
+				{
+					b(c)=divvadvecv(velocities,x,y,z,8*cube*cube*cube, hlength/cube);
+					++c;
+				}
+		vector *** stressdiv= divtenall(stresses, 2 * cube, hlength / cube); //cjamge radois to cube lengths
 		for (int x = 0; x < 2 * cube; x++)
 			for (int y = 0; y < 2 * cube; y++)
 				for (int z = 0; z < 2 * cube; z++)
@@ -474,7 +488,7 @@ int bleargh()
 					// calculate i from x,y,z
 					int i = x + y * (2 * cube) + z * (2 * cube) * (2 * cube);
 					vector vel(velocities[0][x][y][z], velocities[1][x][y][z], velocities[2][x][y][z]);
-					tensor grad = gradv(x, y, z, 2 * cube, radius / cube, velocities);
+					tensor grad = gradv(x, y, z, 2 * cube,hlength / cube, velocities);
 					vector secterm = grad.transpose() * vel;
 					vector change = stressdiv[x][y][z] - secterm;
 					velocities[0][x][y][z] += increment * change.X();
@@ -484,7 +498,7 @@ int bleargh()
 					tensor p(a);
 					stresses[x][y][z] = grad.transpose()+grad;
 				}
-		writeVTKFile(i+1, velocities, 2*cube, 2*cube, 2*cube, radius/cube, radius/cube, radius/cube);
+		writeVTKFile(i+1, velocities, 2*cube, 2*cube, 2*cube, hlength/cube, hlength/cube, hlength/cube);
 	}
 	std::cout << rcm.X() <<" " << rcm.Y()<<" " << rcm.Z();
 	//vodt=divstress-gradv*v

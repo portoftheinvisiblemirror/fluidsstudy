@@ -95,6 +95,7 @@ double partdif(long double **** a,int x, int y, int z, int n, double h, int d,in
 	}
 	return answer;
 }
+
 vector *** divtenall(tensor*** a, const int n, double h)
 {
 	long double **** array= allocate4d(9,n,n,n);
@@ -140,12 +141,15 @@ vector velocity(double x, double y, double z)
 	vector output(4*y*y,0,0);
 	return output;
 }
-vector divvadvecv(double x, double y, double z)
+double divvadvecv(double **** a, double x, double y, double z,int n, double h)
 {
-	vector v = velocity(x, y, z);
-	vector diff1 = diff(x, y, z, 1);
-	vector diff2 = diff(x, y, z, 2);
-	vector diff3 = diff(x, y, z, 3);
-	vector result(v.X() * diff1.X() + v.Y() * diff2.X() + v.Z() * diff3.X(), v.X() * diff1.Y() + v.Y() * diff2.Y() + v.Z() * diff3.Y(), v.X() * diff1.Z() + v.Y() * diff2.Z() + v.Z() * diff3.Z());
-	return result;
+	double sum=0;
+	for (int d=0 ; d<=2; d++)
+	{
+		for (int e=0 ; e<=2; e++)
+			{
+				sum+=partdif(a,x, y, z, n, h, d,e)*partdif(a,x, y, z, n, h, e,d);
+			}
+	}
+	return sum;
 }
