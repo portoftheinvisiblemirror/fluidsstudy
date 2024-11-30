@@ -1,5 +1,5 @@
 $(wildcard $(SOURCEDIR)/*.tex)
-all: cubyboxy test4dalloc
+all: cubyboxy test4dalloc ns2d_solver ns3d_solver
 .cpp.o:
 	g++ -c -g -O0 -o $@ $<
 cubyboxy: cubyboxy.o mem.o utilities.o vtk.o
@@ -8,5 +8,9 @@ cubyboxy: cubyboxy.o mem.o utilities.o vtk.o
 test4dalloc: test4dalloc.o mem.o utilities.o
 	g++ -O0 -o $@ $^
 	objdump -d $@ > assembly.txt
+ns2d_solver: ns2d_solver.o ns2d.o vtk.o
+	g++ -O0 -o $@ $^
+ns3d_solver: ns3d_solver.o ns3d.o vtk.o
+	g++ -O0 -o $@ $^
 clean:
 	rm cubyboxy cubyboxy.o mem.o utilities.o test4dalloc.o
