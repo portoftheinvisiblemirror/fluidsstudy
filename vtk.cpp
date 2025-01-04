@@ -2,7 +2,7 @@
 #include <fstream>
 #include "vtk.hpp"
 
-void writeVTKFile(int timestep, long double **** vp4d, int Nx, int Ny, int Nz, long double dx, long double dy, long double dz) {
+void writeVTKFile(int timestep, double **** vp4d, int Nx, int Ny, int Nz, double dx, double dy, double dz) {
     std::ofstream vtkFile;
     std::string filename = "output_" + std::to_string(timestep) + ".vtk";
     vtkFile.open(filename);

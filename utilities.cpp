@@ -13,7 +13,7 @@ tensor stress(double p, double x, double y, double z)
 {
 	double c[] = { p, 0, 0, 0, p, 0, 0, 0, p };
 	tensor pressure(c);
-	tensor output = pressure + shear(x, y, z);
+	tensor output =shear(x, y, z)-pressure;
 	return output;
 }
 vector diff(double x, double y, double z, int index)
@@ -37,7 +37,7 @@ tensor sheara(double**** a, int x, int y, int z)
 	tensor grad(c1, c2, c3);
 	return grad + grad.transpose();
 }
-double partdif(long double **** a,int x, int y, int z, int n, double h, int d,int e)//array,x,y,z ,number of spacings, spacing, component of vector, direction of differentiation: 0=x,1=y,2=z
+double partdif(double **** a,int x, int y, int z, int n, double h, int d,int e)//array,x,y,z ,number of spacings, spacing, component of vector, direction of differentiation: 0=x,1=y,2=z
 {
 	double answer = 0;
 	switch (e)
@@ -59,6 +59,7 @@ double partdif(long double **** a,int x, int y, int z, int n, double h, int d,in
 		{
 			answer = (-3 * a[d][x][y][z] + 4 * a[d][x + 1][y][z] - 1 * a[d][x + 2][y][z]) / 2 / h;
 		}
+		break;
 	case 1: //y diff
 		if (y >= 1)
 		{
@@ -75,6 +76,7 @@ double partdif(long double **** a,int x, int y, int z, int n, double h, int d,in
 		{
 			answer = (-3 * a[d][x][y][z] + 4 * a[d][x][y + 1][z] - 1 * a[d][x][y + 2][z]) / 2 / h;
 		}
+		break;
 	case 2:
 		//diffz
 		if (z >= 1)
@@ -92,13 +94,17 @@ double partdif(long double **** a,int x, int y, int z, int n, double h, int d,in
 		{
 			answer = (-3 * a[d][x][y][z] + 4 * a[d][x][y][z + 1] - 1 * a[d][x][y][z + 2]) / 2 / h;
 		}
+		break;
+	default:
+		std::cout << "error";
+		exit(1);
 	}
 	return answer;
 }
 
 vector *** divtenall(tensor*** a, const int n, double h)
 {
-	long double **** array= allocate4d(9,n,n,n);
+	double **** array= allocate4d(9,n,n,n);
 	for (int i = 0; i < n; i++)
 	{
 		for (int j = 0; j < n; j++)
@@ -122,7 +128,7 @@ vector *** divtenall(tensor*** a, const int n, double h)
 		{
 			for (int z = 0; z < n; z++)
 			{
-				long double temp[3] = { 0,0,0 };
+				double temp[3] = { 0,0,0 };
 				for (int l = 1; l <= 3; l++)//column
 				{
 					for (int m = 1; m <= 3; m++)//row

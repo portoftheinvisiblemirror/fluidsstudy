@@ -1,39 +1,80 @@
 #include "mem.hpp"
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+void print_rss_memory(const std::string &message) {
+	// Path to the statm file for the current process
+	std::cout << message << "\n";
+	const char* statm_path = "/proc/self/statm";
+	FILE* file = fopen(statm_path, "r");
+
+	if (!file) {
+		perror("Failed to open statm file");
+		return;
+	}
+
+	// Variables to hold memory usage information
+	unsigned long size, rss;
+
+	// Read the first two values from the statm file
+	if (fscanf(file, "%lu %lu", &size, &rss) != 2) {
+		perror("Failed to read statm file");
+		fclose(file);
+		return;
+	}
+
+	fclose(file);
+
+	// Page size in bytes
+	long page_size = sysconf(_SC_PAGESIZE);
+	if (page_size == -1) {
+		perror("Failed to get page size");
+		return;
+	}
+
+	// Calculate RSS in bytes
+	unsigned long rss_in_bytes = rss * page_size;
+
+	// Print the results
+	printf("Resident Set Size (RSS): %lu bytes\n", rss_in_bytes);
+}
+
 // Implementation file for memory management related utilities
-long double** allocate2d(const unsigned int x, const unsigned int y, long double** array2d) {
+double** allocate2d(const unsigned int x, const unsigned int y, double** array2d) {
 	// Allocate memory blocks of size
 	// x i.e., no of 2D Arrays
-	array2d = new long double* [x];
+	array2d = new double* [x];
 
 	for (unsigned int i = 0; i < x; i++) {
 
 		// Allocate memory blocks for
 		// rows of each 2D array
-		array2d[i] = new long double[y];
+		array2d[i] = new double[y];
 	}
 	return array2d;
 }
 
-long double*** allocate3d(const unsigned int latitudes, const unsigned int longitudes, const unsigned int narea) {
+double*** allocate3d(const unsigned int latitudes, const unsigned int longitudes, const unsigned int narea) {
 	// Dimensions of the 3D array
 	int x = latitudes, y = longitudes, z = narea;
 	int count = 0;
 
 	// Allocate memory blocks of size
 	// x i.e., no of 2D Arrays
-	long double *** spheremesh = new long double** [x];
+	double *** spheremesh = new double** [x];
 
 	for (int i = 0; i < x; i++) {
 
 		// Allocate memory blocks for
 		// rows of each 2D array
-		spheremesh[i] = new long double* [y];
+		spheremesh[i] = new double* [y];
 
 		for (int j = 0; j < y; j++) {
 
 			// Allocate memory blocks for
 			// columns of each 2D array
-			spheremesh[i][j] = new long double[z];
+			spheremesh[i][j] = new double[z];
 		}
 	}
 
@@ -110,17 +151,17 @@ tensor*** allocate3dt(const unsigned int latitudes, const unsigned int longitude
 	//printf("Check value: %d \n", spheremesh[10][10][3]);
 	return spheremesh;
 }
-long double**** allocate4d(const unsigned int nc, const unsigned int nx, const unsigned int ny, const unsigned int nz) {
+double**** allocate4d(const unsigned int nc, const unsigned int nx, const unsigned int ny, const unsigned int nz) {
 	// Allocate memory blocks of size
 	// nc, nx, ny, nz
-	long double **** ptr = new long double*** [nc]; // ptr is a pointer to an array of 3d matrices
+	double **** ptr = new double*** [nc]; // ptr is a pointer to an array of 3d matrices
 
 	for (int i = 0; i < nc; i++) {
-		ptr[i] = new long double** [nx]; // ptr[i] is a pointer to an array 2d matrices
+		ptr[i] = new double** [nx]; // ptr[i] is a pointer to an array 2d matrices
 		for (int j = 0; j < nx; j++) {
-			ptr[i][j] = new long double* [ny];
+			ptr[i][j] = new double* [ny];
 			for (int k = 0; k < nz; k++) {
-				ptr[i][j][k] = new long double [nz];
+				ptr[i][j][k] = new double [nz];
 			} 
 		}
 	}
