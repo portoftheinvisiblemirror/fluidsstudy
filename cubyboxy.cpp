@@ -192,8 +192,14 @@ double plaplace(double x, double y, double z,double h)
 //	
 //}
 
-static vector forcel(const double radius, const double xlow, const double xup, const double ylow, const double yup, const double zlow, const double zup, unsigned int latitudes, unsigned int longitudes, double*** spheremesh,double p, double sx, double sy, double sz,tensor***st, int cube)
+static vector forcel(const double radius, double xlow, double xup, double ylow, double yup, double zlow, double zup, unsigned int latitudes, unsigned int longitudes, double*** spheremesh,double p, double sx, double sy, double sz,tensor***st, int cube)
 {
+	xlow -= sx;
+	xup -= sx;
+	ylow -= sy;
+	yup -= sy;
+	zlow -= sz;
+	zup -= sz;
 	//pt. 3 find the force
 	// maybe restrict the range of indices that can potentially intersect with the cube to speed up area calculation.
 	vector force(0,0,0);
@@ -226,7 +232,7 @@ static vector forcel(const double radius, const double xlow, const double xup, c
 				if (spheremesh[i][j][0] >= xlow && spheremesh[i][j][0] <= xup && spheremesh[i][j][1] >= ylow && spheremesh[i][j][1] <= yup && spheremesh[i][j][2] >= zlow && spheremesh[i][j][2] <= zup) //check if the point is inside the box. If yes, add the area
 				{
 					vector r(spheremesh[i][j][0], spheremesh[i][j][1], spheremesh[i][j][2]);
-					force =force+ (st[(int)round((xlow) / (xup-xlow) + cube)][(int)round((ylow) / (xup - xlow) + cube)][(int)round((zlow) / (xup - xlow) + cube)]) * r * spheremesh[i][j][3] / radius;
+					force =force+ (st[(int)round((xlow+sx) / (xup-xlow) + cube)][(int)round((ylow+sy) / (xup - xlow) + cube)][(int)round((zlow+sz) / (xup - xlow) + cube)]) * r * spheremesh[i][j][3] / radius;
 				}
 		}
 	}
@@ -244,16 +250,27 @@ static vector forcel(const double radius, const double xlow, const double xup, c
 				if (spheremesh[i][j][0] >= xlow && spheremesh[i][j][0] <= xup && spheremesh[i][j][1] >= ylow && spheremesh[i][j][1] <= yup && spheremesh[i][j][2] >= zlow && spheremesh[i][j][2] <= zup) //check if the point is inside the box. If yes, add the area
 				{
 					vector r(spheremesh[i][j][0], spheremesh[i][j][1], spheremesh[i][j][2]);
-					force = force + (st[(int)round((xlow) / (xup - xlow) + cube)][(int)round((ylow) / (xup - xlow) + cube)][(int)round((zlow) / (xup - xlow) + cube)]) * r * spheremesh[i][j][3] / radius;
+					force = force + (st[(int)round((xlow + sx) / (xup - xlow) + cube)][(int)round((ylow + sy) / (xup - xlow) + cube)][(int)round((zlow + sz) / (xup - xlow) + cube)]) * r * spheremesh[i][j][3] / radius;
 				}
 			for (unsigned int j = uplong; j < latitudes; j++)
 				if (spheremesh[i][j][0] >= xlow && spheremesh[i][j][0] <= xup && spheremesh[i][j][1] >= ylow && spheremesh[i][j][1] <= yup && spheremesh[i][j][2] >= zlow && spheremesh[i][j][2] <= zup) //check if the point is inside the box. If yes, add the area
 				{
 					vector r(spheremesh[i][j][0], spheremesh[i][j][1], spheremesh[i][j][2]);
-					force = force + (st[(int)round((xlow) / (xup - xlow) + cube)][(int)round((ylow) / (xup - xlow) + cube)][(int)round((zlow) / (xup - xlow) + cube)]) * r * spheremesh[i][j][3] / radius;
+					force = force + (st[(int)round((xlow + sx) / (xup - xlow) + cube)][(int)round((ylow + sy) / (xup - xlow) + cube)][(int)round((zlow + sz) / (xup - xlow) + cube)]) * r * spheremesh[i][j][3] / radius;
 				}
 		}
 	}
+	/*std::cout << force.X() << " " << force.Y() << " " << force.Z() << "\n";*/
+	//std::cout << "Velocity:" << velocities[0][x][y - 1][z] << " " << velocities[1][x][y - 1][z] << " " << velocities[2][x][y - 1][z] << " " << velocities[0][x][y][z] << " " << velocities[1][x][y][z] << " " << velocities[2][x][y][z] << " " << velocities[0][x][y + 1][z] << " " << velocities[1][x][y + 1][z] << " " << velocities[2][x][y + 1][z] << "\n";
+	/*std::cout << "Stress:" << st[(int)round((xlow+sx) / (xup-xlow) + cube)][(int)round((ylow+sy) / (xup - xlow) + cube)][(int)round((zlow+sz) / (xup - xlow) + cube)].getValue(1, 1) << " " << st[(int)round((xlow+sx) / (xup-xlow) + cube)][(int)round((ylow+sy) / (xup - xlow) + cube)][(int)round((zlow+sz) / (xup - xlow) + cube)].getValue(1, 2) << " " << st[(int)round((xlow+sx) / (xup-xlow) + cube)][(int)round((ylow+sy) / (xup - xlow) + cube)][(int)round((zlow+sz) / (xup - xlow) + cube)].getValue(1, 3) << "\n";
+	std::cout << "Stress:" << st[(int)round((xlow+sx) / (xup-xlow) + cube)][(int)round((ylow+sy) / (xup - xlow) + cube)][(int)round((zlow+sz) / (xup - xlow) + cube)].getValue(2, 1) << " " << st[(int)round((xlow+sx) / (xup-xlow) + cube)][(int)round((ylow+sy) / (xup - xlow) + cube)][(int)round((zlow+sz) / (xup - xlow) + cube)].getValue(2, 2) << " " << st[(int)round((xlow+sx) / (xup-xlow) + cube)][(int)round((ylow+sy) / (xup - xlow) + cube)][(int)round((zlow+sz) / (xup - xlow) + cube)].getValue(2, 3) << "\n";
+	std::cout << "Stress:" << st[(int)round((xlow+sx) / (xup-xlow) + cube)][(int)round((ylow+sy) / (xup - xlow) + cube)][(int)round((zlow+sz) / (xup - xlow) + cube)].getValue(3, 1) << " " << st[(int)round((xlow+sx) / (xup-xlow) + cube)][(int)round((ylow+sy) / (xup - xlow) + cube)][(int)round((zlow+sz) / (xup - xlow) + cube)].getValue(3, 2) << " " << st[(int)round((xlow+sx) / (xup-xlow) + cube)][(int)round((ylow+sy) / (xup - xlow) + cube)][(int)round((zlow+sz) / (xup - xlow) + cube)].getValue(3, 3) << "\n"; */
+	std::cout << (xlow) << " " << xup << "\n";
+	//std::cout << stresses[x][y][z].getValue(2, 1) << " " << stresses[x][y][z].getValue(2, 2) << " " << stresses[x][y][z].getValue(2, 3) << "\n";
+	//std::cout << stresses[x][y][z].getValue(3, 1) << " " << stresses[x][y][z].getValue(3, 2) << " " << stresses[x][y][z].getValue(3, 3) << "\n";
+	//std::cout << "Position:" << cubes[i][0] << " " << cubes[i][1] << " " << cubes[i][2] << "\n";
+	//std::cout << "Increment:" << s / cube << "\n";
+
 	return force;
 }
 static vector torquel(const double radius, const double xlow, const double xup, const double ylow, const double yup, const double zlow, const double zup, unsigned int latitudes, unsigned int longitudes, double*** spheremesh, double p,double sx, double sy, double sz, tensor*** st, int cube)
@@ -327,10 +344,10 @@ static vector torquel(const double radius, const double xlow, const double xup, 
 	return torque;
 }
 
-int checkcube(double radius, double s, double x, double y, double z)
+int checkcube(double radius, double s, double x, double y, double z, double sx, double sy, double sz)
 {
 	//center of cube
-	vector center(x, y, z);
+	vector center(x-sx, y-sy, z-sz);
 	if (center.length() + s<radius || center.length() - s >radius)
 	{
 		return -1;
@@ -462,7 +479,7 @@ int bleargh()
 	std::vector <int> correctindexes;
 	for (unsigned long int kk = 0; kk < 8 * cube * cube * cube; kk++)
 	{
-		if (checkcube(radius, hlength/cube, cubes[kk][0], cubes[kk][1], cubes[kk][2]) == 0)
+		if (checkcube(radius, hlength/cube, cubes[kk][0], cubes[kk][1], cubes[kk][2],0,0,0) == 0)
 		{
 			correctindexes.push_back(kk);
 		}
@@ -512,15 +529,15 @@ int main()
 {
   //bleargh();
   //exit(0);
-	int latitudes=50, longitudes=50;
-	double cube=100;
+	int latitudes=70, longitudes=70;
+	double cube=97;
 	double** cubes = nullptr;
 	double s = 0.5;
 	print_rss_memory("start program");
 	cubes = compute_cubes(s, cube, cubes);
 	print_rss_memory("after compute cubes");
 	double radius = 0.01;
-	double p = 1,pressure=1;
+	double p =0.1,pressure=1;
 	
 	double**** velocities = allocate4d(4, 2 * cube, 2 * cube, 2 * cube);//and pressure
 	print_rss_memory("after velocities");
@@ -546,38 +563,49 @@ int main()
 			{
 				//// calculate i from x,y,z
 				int i = x + y * (2 * cube) + z * (2 * cube) * (2 * cube);
-				//tensor grad = gradv(x, y, z, 2 * cube, s / cube, velocities);
-				//double a[] = { pressure, 0, 0, 0, pressure, 0, 0, 0, pressure };
-				//tensor p(a);
-				//stresses[x][y][z] = grad.transpose() + grad-p;
-				stress(pressure, cubes[i][0], cubes[i][1], cubes[i][2]);
+				
+				tensor grad = gradv(x, y, z, 2 * cube, s / cube, velocities);
+				double a[] = { pressure, 0, 0, 0, pressure, 0, 0, 0, pressure };
+				tensor p(a);
+				stresses[x][y][z] = grad.transpose() + grad - p;
+				if (x == cube +50&& y == cube +27&& z == cube+28)
+				{
+					std::cout << "Velocity:" << velocities[0][x][y - 1][z] << " " << velocities[1][x][y - 1][z] << " " << velocities[2][x][y - 1][z] << " " << velocities[0][x][y][z] << " " << velocities[1][x][y][z] << " " << velocities[2][x][y][z] << " " << velocities[0][x][y + 1][z] << " " << velocities[1][x][y + 1][z] << " " << velocities[2][x][y + 1][z] << "\n";
+					std::cout <<"Stress:" << stresses[x][y][z].getValue(1, 1) << " " << stresses[x][y][z].getValue(1, 2) <<" " << stresses[x][y][z].getValue(1, 3) << "\n";
+					std::cout << stresses[x][y][z].getValue(2, 1) <<" " << stresses[x][y][z].getValue(2, 2) <<" " << stresses[x][y][z].getValue(2, 3) << "\n";
+					std::cout << stresses[x][y][z].getValue(3, 1) << " " << stresses[x][y][z].getValue(3, 2) <<" " << stresses[x][y][z].getValue(3, 3) << "\n";
+					std::cout << "Position:" << cubes[i][0] <<" " << cubes[i][1] << " " << cubes[i][2]<< "\n";
+					std::cout << "Increment:" << s / cube << "\n";
+				}
+				
+				
 			}
 	std::cout << "radius forcex forcey forcez torquex torquey torquez error1 error2\n";
 	//
 	/*std::cout << "N area error\n";*/
-	for (int i = 1; i <= 10; i++)
+	for (int i = 1; i <= 1; i++)
 	{
 		std::vector <int> correctindexes;
 		for (unsigned long int kk = 0; kk < 8 * cube * cube * cube; kk++)
 		{
-			if (checkcube(radius, s / cube, cubes[kk][0], cubes[kk][1], cubes[kk][2]) == 0)
+			if (checkcube(radius, s / cube, cubes[kk][0], cubes[kk][1], cubes[kk][2],0,p,0) == 0)
 			{
 				correctindexes.push_back(kk);
 			}
 		}
 		vector sum(0,0,0);
 		vector sumt(0, 0, 0);
-		for (unsigned long int kk = 0; kk < 8 * cube * cube * cube; kk++)
+		/*for (unsigned long int kk = 0; kk < 8 * cube * cube * cube; kk++)
 		{
 			if (checkcube(radius, 50 / cube, cubes[kk][0], cubes[kk][1], cubes[kk][2]) == 0)
 			{
 				correctindexes.push_back(kk);
 			}
-		}
+		}*/
 
 
-			sumt= torque(0, p, 0, longitudes, latitudes, radius,50, cube, 5, cubes, correctindexes, spheremesh,stresses);
-			sum = force(0, p, 0, longitudes, latitudes, radius, 50,cube, 5, cubes, correctindexes, spheremesh,stresses);
+			sumt= torque(0, p, 0, longitudes, latitudes, radius,s, cube, pressure, cubes, correctindexes, spheremesh,stresses);
+			sum = force(0, p, 0, longitudes, latitudes, radius, s,cube, pressure, cubes, correctindexes, spheremesh,stresses);
 			correctindexes.clear();
 
 
