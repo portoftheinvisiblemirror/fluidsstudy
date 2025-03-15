@@ -273,8 +273,14 @@ static vector forcel(const double radius, double xlow, double xup, double ylow, 
 
 	return force;
 }
-static vector torquel(const double radius, const double xlow, const double xup, const double ylow, const double yup, const double zlow, const double zup, unsigned int latitudes, unsigned int longitudes, double*** spheremesh, double p,double sx, double sy, double sz, tensor*** st, int cube)
+static vector torquel(double radius, double xlow, double xup, double ylow, double yup, double zlow, double zup, unsigned int latitudes, unsigned int longitudes, double*** spheremesh, double p,double sx, double sy, double sz, tensor*** st, int cube)
 {
+	xlow -= sx;
+	xup -= sx;
+	ylow -= sy;
+	yup -= sy;
+	zlow -= sz;
+	zup -= sz;
 	//pt. 4 find the torque
 	// maybe restrict the range of indices that can potentially intersect with the cube to speed up area calculation.
 	vector torque(0, 0, 0);
@@ -309,7 +315,7 @@ static vector torquel(const double radius, const double xlow, const double xup, 
 					vector r(spheremesh[i][j][0] + sx, spheremesh[i][j][1] + sy, spheremesh[i][j][2] + sz);
 					vector n(spheremesh[i][j][0], spheremesh[i][j][1], spheremesh[i][j][2]);
 					n = n / radius;
-					torque = torque + r%((st[(int)round((xlow) / (xup - xlow) + cube)][(int)round((ylow) / (xup - xlow) + cube)][(int)round((zlow) / (xup - xlow) + cube)]) *n)* spheremesh[i][j][3];
+					torque = torque + r%((st[(int)round((xlow + sx) / (xup - xlow) + cube)][(int)round((ylow + sy) / (xup - xlow) + cube)][(int)round((zlow + sz) / (xup - xlow) + cube)]) *n)* spheremesh[i][j][3];
 				}
 		}
 	}
@@ -329,7 +335,7 @@ static vector torquel(const double radius, const double xlow, const double xup, 
 					vector r(spheremesh[i][j][0] + sx, spheremesh[i][j][1] + sy, spheremesh[i][j][2] + sz);
 					vector n(spheremesh[i][j][0], spheremesh[i][j][1], spheremesh[i][j][2]);
 					n = n / radius;
-					torque = torque + r % ((st[(int)round((xlow) / (xup - xlow) + cube)][(int)round((ylow) / (xup - xlow) + cube)][(int)round((zlow) / (xup - xlow) + cube)]) * n) * spheremesh[i][j][3];
+					torque = torque + r % ((st[(int)round((xlow + sx) / (xup - xlow) + cube)][(int)round((ylow + sy) / (xup - xlow) + cube)][(int)round((zlow + sz) / (xup - xlow) + cube)]) * n) * spheremesh[i][j][3];
 				}
 			for (unsigned int j = uplong; j < latitudes; j++)
 				if (spheremesh[i][j][0] >= xlow && spheremesh[i][j][0] <= xup && spheremesh[i][j][1] >= ylow && spheremesh[i][j][1] <= yup && spheremesh[i][j][2] >= zlow && spheremesh[i][j][2] <= zup) //check if the point is inside the box. If yes, add the area
@@ -337,7 +343,7 @@ static vector torquel(const double radius, const double xlow, const double xup, 
 					vector r(spheremesh[i][j][0] + sx, spheremesh[i][j][1] + sy, spheremesh[i][j][2] + sz);
 					vector n(spheremesh[i][j][0], spheremesh[i][j][1], spheremesh[i][j][2]);
 					n = n / radius;
-					torque = torque + r % ((st[(int)round((xlow) / (xup - xlow) + cube)][(int)round((ylow) / (xup - xlow) + cube)][(int)round((zlow) / (xup - xlow) + cube)]) * n) * spheremesh[i][j][3];
+					torque = torque + r % ((st[(int)round((xlow + sx) / (xup - xlow) + cube)][(int)round((ylow + sy) / (xup - xlow) + cube)][(int)round((zlow + sz) / (xup - xlow) + cube)]) * n) * spheremesh[i][j][3];
 				}
 		}
 	}
@@ -489,16 +495,41 @@ int bleargh()
 		vector F = force(rcm.X(), rcm.Y(), rcm.Z(), longitudes, latitudes, radius, hlength ,cube, pressure, cubes, correctindexes, spheremesh,stresses);
 		angv = angv+torque(rcm.X(), rcm.Y(), rcm.Z(), longitudes, latitudes, radius, hlength,cube, pressure,cubes, correctindexes, spheremesh,stresses)*increment/(2*mass*radius*radius/5);
 		rcm = rcm + ucm * increment + F * (increment) * (increment) / (2 * mass);
-		Eigen::VectorXd b(8*cube*cube*cube);
-		Eigen::MatrixXd A(8*cube*cube*cube,8*cube*cube*cube);
+		Eigen::VectorXd b(8 * cube * cube * cube), p(8 * cube * cube * cube);
+		Eigen::MatrixXd A(8 * cube * cube * cube, 8 * cube * cube * cube = Eigen::MatrixXd::Zero();
 		int c=0;
-		for (int x = 0; x < 2 * cube; x++)
-			for (int y = 0; y < 2 * cube; y++)
-				for (int z = 0; z < 2 * cube; z++)
+		for (int x = 0; x < 2 * cube; x++)//+4cube^2
+			for (int y = 0; y < 2 * cube; y++)//+2cube
+				for (int z = 0; z < 2 * cube; z++)//+1
 				{
 					b(c)=divvadvecv(velocities,x,y,z,8*cube*cube*cube, hlength/cube);
 					++c;
 				}
+		c = 0;
+		for (int x = 0; x < 2 * cube; x++)//+4cube^2
+			for (int y = 0; y < 2 * cube; y++)//+2cube
+				for (int z = 0; z < 2 * cube; z++)//+1
+				{
+					if (z > 0)
+					A(c, c - 1) = 1;
+					if (z < 2 * cube - 1)
+					A(c, c + 1) = 1;
+					if (y>0)
+					A(c, c - 2 * cube) = 1;
+					if (y < 2 * cube - 1);
+					A(c, c + 2 * cube) = 1;
+					if (x > 0)
+					A(c, c - 4 * cube * cube) = 1;
+					if (x < 2 * cube - 1)
+					A(c, c + 4 * cube * cube) = 1;
+					A(c, c) = -6;
+					++c;
+				}
+		Eigen::ConjugateGradient<MatrixXd, Lower | Upper> cg;
+		cg.compute(A);
+		p = cg.solve(b);
+		for (int i = 0; i <= 10; ++i)
+			p = cg.solve(b);
 		vector *** stressdiv= divtenall(stresses, 2 * cube, hlength / cube); //cjamge radois to cube lengths
 		for (int x = 0; x < 2 * cube; x++)
 			for (int y = 0; y < 2 * cube; y++)
@@ -506,6 +537,7 @@ int bleargh()
 				{
 					// calculate i from x,y,z
 					int i = x + y * (2 * cube) + z * (2 * cube) * (2 * cube);
+					int anti = z + y * (2 * cube) + x * (2 * cube) * (2 * cube);
 					vector vel(velocities[0][x][y][z], velocities[1][x][y][z], velocities[2][x][y][z]);
 					tensor grad = gradv(x, y, z, 2 * cube,hlength / cube, velocities);
 					vector secterm = grad.transpose() * vel;
@@ -513,8 +545,8 @@ int bleargh()
 					velocities[0][x][y][z] += increment * change.X();
 					velocities[1][x][y][z] += increment * change.Y();
 					velocities[2][x][y][z] += increment * change.Z();
-					double a[] = { pressure, 0, 0, 0, pressure, 0, 0, 0, pressure };
-					tensor p(a);
+					double a[] = { p(anti), 0, 0, 0, p(anti), 0, 0, 0, p(anti)};
+					tensor press(a);
 					stresses[x][y][z] = grad.transpose()+grad;
 				}
 		writeVTKFile(i+1, velocities, 2*cube, 2*cube, 2*cube, hlength/cube, hlength/cube, hlength/cube);
