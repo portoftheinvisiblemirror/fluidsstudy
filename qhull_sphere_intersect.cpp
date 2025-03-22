@@ -79,6 +79,9 @@ int calc_area(const parameters para) {
             points.push_back(cell[1]);
             points.push_back(cell[2]);
         }
+#ifdef DEBUG
+        std::cout << "Number of Points: " << points.size()/3 << std::endl;
+#endif
         
         Qhull qhull;
         qhull.runQhull("", 3, points.size()/3, points.data(), "Qt FA");  // Added FA option for area calculation
@@ -86,6 +89,9 @@ int calc_area(const parameters para) {
         // Sum up areas of all facets
         discreteArea = 0.0;
         const QhullFacetList facets = qhull.facetList();
+#ifdef DEBUG
+        std::cout << "Number of Facets: " << facets.size() << std::endl;
+#endif
         for(const QhullFacet& facet : facets) {
             // Only include facets that are not at infinity
             if (!facet.isGood()) continue;
@@ -166,14 +172,14 @@ int calc_area(const parameters para) {
 
 int main(){
 	parameters para;
-  for(double r = 0.1; r < 0.8; r += 0.05){
-    para.dx = 0.02;
-    para.dy = 0.02;
-    para.dz = 0.02;
-    para.radius = r;
-    para.sphereX = 0.0;
-    para.sphereY = 0.0;
-    para.sphereZ = 0.0;
+    for(double r = 0.8; r <= 0.8; r += 0.05){
+        para.dx = 0.02;
+        para.dy = 0.02;
+        para.dz = 0.02;
+        para.radius = r;
+        para.sphereX = 0.0;
+        para.sphereY = 0.0;
+        para.sphereZ = 0.0;
 		calc_area(para);
 	}
 }
