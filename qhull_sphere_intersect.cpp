@@ -5,6 +5,9 @@
 #include <libqhullcpp/Qhull.h>
 #include <libqhullcpp/QhullVertexSet.h>
 #include <libqhullcpp/QhullPoint.h>
+#include <fstream>
+#include <map>
+
 using namespace orgQhull;
 
 struct parameters{
@@ -16,6 +19,8 @@ struct parameters{
   double sphereY = 0.0; 
   double sphereZ = 0.0;
 };
+
+void writeVTK(const std::string& filename, const std::vector<double>& points, const QhullFacetList& facets) ;
 
 // Function to check if a grid cell intersects with sphere
 bool intersectsSphere(const double x, const double y, const double z, const parameters & p){
@@ -92,6 +97,10 @@ int calc_area(const parameters para) {
 #ifdef DEBUG
         std::cout << "Number of Facets: " << facets.size() << std::endl;
 #endif
+
+        // Write the VTK file
+        writeVTK("sphere_intersection.vtk", points, facets);
+
         for(const QhullFacet& facet : facets) {
             // Only include facets that are not at infinity
             if (!facet.isGood()) continue;
@@ -168,6 +177,98 @@ int calc_area(const parameters para) {
     printf("%10.2f%10.2f%10.2f%10.2f%10.2f\n", para.radius , para.dx , analyticalArea , discreteArea , error);
 
     return 0;
+}
+
+/**
+ * Writes the intersecting points and facets to a VTK file
+ * @param filename The name of the output VTK file
+ * @param points Vector of point coordinates (x1,y1,z1,x2,y2,z2,...)
+ * @param facets List of facets from Qhull
+ */
+void writeVTK(const std::string& filename, const std::vector<double>& points, const QhullFacetList& facets) {
+    std::ofstream outFile(filename);
+    if (!outFile.is_open()) {
+        std::cerr << "Error: Could not open file " << filename << " for writing." << std::endl;
+        return;
+    }
+
+    // Write VTK header
+    outFile << "# vtk DataFile Version 3.0\n";
+    outFile << "Qhull Sphere Intersection\n";
+    outFile << "ASCII\n";
+    outFile << "DATASET POLYDATA\n";
+
+    // Write points
+    int numPoints = points.size() / 3;
+    outFile << "POINTS " << numPoints << " float\n";
+    for (int i = 0; i < numPoints; i++) {
+        outFile << points[i*3] << " " << points[i*3+1] << " " << points[i*3+2] << "\n";
+    }
+
+    // Count valid facets and their vertices for POLYGONS section
+    int validFacets = 0;
+    int totalVertices = 0;
+    for (const QhullFacet& facet : facets) {
+        if (!facet.isGood()) continue;
+        
+        QhullVertexSet vertices = facet.vertices();
+        if (vertices.size() < 3) continue;
+        
+        validFacets++;
+        totalVertices += vertices.size();
+    }
+
+    // Write polygons (facets)
+    outFile << "POLYGONS " << validFacets << " " << (validFacets + totalVertices) << "\n";
+    
+    // Create a map to store point coordinates to index
+    std::map<std::vector<double>, int> coordToIndex;
+    
+    // Build the coordinate to index mapping
+    for (int i = 0; i < numPoints; i++) {
+        std::vector<double> coord = {points[i*3], points[i*3+1], points[i*3+2]};
+        coordToIndex[coord] = i;
+    }
+    
+    // Write facets
+    for (const QhullFacet& facet : facets) {
+        if (!facet.isGood()) continue;
+        
+        QhullVertexSet vertices = facet.vertices();
+        if (vertices.size() < 3) continue;
+        
+        outFile << vertices.size();
+        for (const QhullVertex& vertex : vertices) {
+            // Get the point coordinates from the vertex
+            QhullPoint point = vertex.point();
+            
+            // Find the index of this vertex in our points array
+            double coords[3] = {point[0], point[1], point[2]};
+            
+            // Find the matching index
+            int vertexIndex = -1;
+            for (int i = 0; i < numPoints; i++) {
+                if (std::abs(points[i*3] - coords[0]) < 1e-6 &&
+                    std::abs(points[i*3+1] - coords[1]) < 1e-6 &&
+                    std::abs(points[i*3+2] - coords[2]) < 1e-6) {
+                    vertexIndex = i;
+                    break;
+                }
+            }
+            
+            if (vertexIndex == -1) {
+                std::cerr << "Error: Could not find matching vertex index for point ("
+                          << coords[0] << ", " << coords[1] << ", " << coords[2] << ")" << std::endl;
+                vertexIndex = 0; // Fallback
+            }
+            
+            outFile << " " << vertexIndex;
+        }
+        outFile << "\n";
+    }
+    
+    outFile.close();
+    std::cout << "VTK file written to: " << filename << std::endl;
 }
 
 int main(){
