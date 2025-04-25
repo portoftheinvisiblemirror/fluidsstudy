@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <chrono>
 #include <vector>
-
+#include <fstream>
 #include <stdlib.h>
 
 #include "utilities.hpp"
@@ -16,10 +16,18 @@
 #include "tensor.hpp"
 #include "vtk.hpp"
 #include <Dense>
-
+#include <Sparse>
 double*** compute_spheremesh(const double radius, const unsigned int latitudes, const unsigned int longitudes, double*** spheremesh);
 double** compute_cubes(const double radius, const unsigned int cube, double** cubes);
 
+void saveMatrix(const Eigen::SparseMatrix<double> &A, const Eigen::VectorXd &b)
+{
+	std::ofstream ofile("matrix.txt");
+	ofile << A;
+	ofile << "begin writing vector b\n";
+	ofile << b;
+	ofile.close();
+}
 double angleof(double x, double y)
 {
 	double angle;
@@ -265,7 +273,6 @@ static vector forcel(const double radius, double xlow, double xup, double ylow, 
 	/*std::cout << "Stress:" << st[(int)round((xlow+sx) / (xup-xlow) + cube)][(int)round((ylow+sy) / (xup - xlow) + cube)][(int)round((zlow+sz) / (xup - xlow) + cube)].getValue(1, 1) << " " << st[(int)round((xlow+sx) / (xup-xlow) + cube)][(int)round((ylow+sy) / (xup - xlow) + cube)][(int)round((zlow+sz) / (xup - xlow) + cube)].getValue(1, 2) << " " << st[(int)round((xlow+sx) / (xup-xlow) + cube)][(int)round((ylow+sy) / (xup - xlow) + cube)][(int)round((zlow+sz) / (xup - xlow) + cube)].getValue(1, 3) << "\n";
 	std::cout << "Stress:" << st[(int)round((xlow+sx) / (xup-xlow) + cube)][(int)round((ylow+sy) / (xup - xlow) + cube)][(int)round((zlow+sz) / (xup - xlow) + cube)].getValue(2, 1) << " " << st[(int)round((xlow+sx) / (xup-xlow) + cube)][(int)round((ylow+sy) / (xup - xlow) + cube)][(int)round((zlow+sz) / (xup - xlow) + cube)].getValue(2, 2) << " " << st[(int)round((xlow+sx) / (xup-xlow) + cube)][(int)round((ylow+sy) / (xup - xlow) + cube)][(int)round((zlow+sz) / (xup - xlow) + cube)].getValue(2, 3) << "\n";
 	std::cout << "Stress:" << st[(int)round((xlow+sx) / (xup-xlow) + cube)][(int)round((ylow+sy) / (xup - xlow) + cube)][(int)round((zlow+sz) / (xup - xlow) + cube)].getValue(3, 1) << " " << st[(int)round((xlow+sx) / (xup-xlow) + cube)][(int)round((ylow+sy) / (xup - xlow) + cube)][(int)round((zlow+sz) / (xup - xlow) + cube)].getValue(3, 2) << " " << st[(int)round((xlow+sx) / (xup-xlow) + cube)][(int)round((ylow+sy) / (xup - xlow) + cube)][(int)round((zlow+sz) / (xup - xlow) + cube)].getValue(3, 3) << "\n"; */
-	std::cout << (xlow) << " " << xup << "\n";
 	//std::cout << stresses[x][y][z].getValue(2, 1) << " " << stresses[x][y][z].getValue(2, 2) << " " << stresses[x][y][z].getValue(2, 3) << "\n";
 	//std::cout << stresses[x][y][z].getValue(3, 1) << " " << stresses[x][y][z].getValue(3, 2) << " " << stresses[x][y][z].getValue(3, 3) << "\n";
 	//std::cout << "Position:" << cubes[i][0] << " " << cubes[i][1] << " " << cubes[i][2] << "\n";
@@ -483,53 +490,70 @@ int bleargh()
 	vector rcm(spherex, spherey, spherez);
 	vector angv(0, 0, 0);
 	std::vector <int> correctindexes;
-	for (unsigned long int kk = 0; kk < 8 * cube * cube * cube; kk++)
+	
+	for (int i = 0; i < 10; i++)
 	{
-		if (checkcube(radius, hlength/cube, cubes[kk][0], cubes[kk][1], cubes[kk][2],0,0,0) == 0)
+		for (unsigned long int kk = 0; kk < 8 * cube * cube * cube; kk++)
 		{
-			correctindexes.push_back(kk);
+			if (checkcube(radius, hlength / cube, cubes[kk][0], cubes[kk][1], cubes[kk][2], rcm.X(), rcm.Y(), rcm.Z()) == 0)
+			{
+				correctindexes.push_back(kk);
+			}
 		}
-	}
-	for (int i = 0; i < 100; i++)
-	{
 		vector F = force(rcm.X(), rcm.Y(), rcm.Z(), longitudes, latitudes, radius, hlength ,cube, pressure, cubes, correctindexes, spheremesh,stresses);
 		angv = angv+torque(rcm.X(), rcm.Y(), rcm.Z(), longitudes, latitudes, radius, hlength,cube, pressure,cubes, correctindexes, spheremesh,stresses)*increment/(2*mass*radius*radius/5);
 		rcm = rcm + ucm * increment + F * (increment) * (increment) / (2 * mass);
+
+		//no slip condition
+		//velocities[x][y][z]=ucm + angv%rcm; use correct indices?
+		for (auto i : correctindexes) //will there be holes or thick shells?
+		{
+			int x = i / (2 * cube) / (2 * cube);
+			int y = (i - 2 * cube * x * 2 * cube) / (2 * cube);
+			int z = i - x * 4 * cube * cube - y * 2 * cube;
+			vector relv = ucm + angv % rcm;
+			velocities[0][x][y][z] = (relv).X();
+			velocities[1][x][y][z] = (relv).Y();
+			velocities[2][x][y][z] = (relv).Z();
+		}
 		Eigen::VectorXd b(8 * cube * cube * cube), p(8 * cube * cube * cube);
-		Eigen::MatrixXd A(8 * cube * cube * cube, 8 * cube * cube * cube = Eigen::MatrixXd::Zero();
+		Eigen::SparseMatrix<double> A(8*cube*cube*cube,8*cube*cube*cube);
 		int c=0;
 		for (int x = 0; x < 2 * cube; x++)//+4cube^2
 			for (int y = 0; y < 2 * cube; y++)//+2cube
 				for (int z = 0; z < 2 * cube; z++)//+1
 				{
-					b(c)=divvadvecv(velocities,x,y,z,8*cube*cube*cube, hlength/cube);
+					b(c)=divvadvecv(velocities,x,y,z,2*cube, hlength/cube);
 					++c;
 				}
 		c = 0;
+		std::vector<Eigen::Triplet<double>> tripletlist;
+		tripletlist.reserve(7 * 8 * cube * cube * cube);
 		for (int x = 0; x < 2 * cube; x++)//+4cube^2
 			for (int y = 0; y < 2 * cube; y++)//+2cube
 				for (int z = 0; z < 2 * cube; z++)//+1
 				{
 					if (z > 0)
-					A(c, c - 1) = 1;
+						tripletlist.push_back(Eigen::Triplet<double>(c, c - 1, 1 / (hlength/cube)/ (hlength / cube)));
 					if (z < 2 * cube - 1)
-					A(c, c + 1) = 1;
+						tripletlist.push_back(Eigen::Triplet<double>(c, c + 1, 1 / (hlength / cube) / (hlength / cube)));
 					if (y>0)
-					A(c, c - 2 * cube) = 1;
-					if (y < 2 * cube - 1);
-					A(c, c + 2 * cube) = 1;
+						tripletlist.push_back(Eigen::Triplet<double>(c, c - 2 * cube, 1 / (hlength / cube) / (hlength / cube)));
+					if (y < 2 * cube - 1)
+						tripletlist.push_back(Eigen::Triplet<double>(c, c + 2 * cube, 1 / (hlength / cube) / (hlength / cube)));
 					if (x > 0)
-					A(c, c - 4 * cube * cube) = 1;
+						tripletlist.push_back(Eigen::Triplet<double>(c, c - 4 * cube * cube, 1 / (hlength / cube) / (hlength / cube)));
 					if (x < 2 * cube - 1)
-					A(c, c + 4 * cube * cube) = 1;
-					A(c, c) = -6;
+						tripletlist.push_back(Eigen::Triplet<double>(c, c + 4 * cube * cube, 1 / (hlength / cube) / (hlength / cube)));
+					tripletlist.push_back(Eigen::Triplet<double>(c, c, -6 / (hlength / cube) / (hlength / cube)));//spacing?
 					++c;
 				}
-		Eigen::ConjugateGradient<MatrixXd, Lower | Upper> cg;
-		cg.compute(A);
-		p = cg.solve(b);
-		for (int i = 0; i <= 10; ++i)
-			p = cg.solve(b);
+		A.setFromTriplets(tripletlist.begin(), tripletlist.end());
+		saveMatrix(A,b);
+		Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower | Eigen::Upper> cg;
+		std::cout << "is this really the cube i thought" << cube << std::flush;
+		cg.compute(A);//from eigen
+		p = cg.solve(b);//tolerance 10^-14
 		vector *** stressdiv= divtenall(stresses, 2 * cube, hlength / cube); //cjamge radois to cube lengths
 		for (int x = 0; x < 2 * cube; x++)
 			for (int y = 0; y < 2 * cube; y++)
@@ -547,7 +571,7 @@ int bleargh()
 					velocities[2][x][y][z] += increment * change.Z();
 					double a[] = { p(anti), 0, 0, 0, p(anti), 0, 0, 0, p(anti)};
 					tensor press(a);
-					stresses[x][y][z] = grad.transpose()+grad;
+					stresses[x][y][z] = grad.transpose()+grad+press;
 				}
 		writeVTKFile(i+1, velocities, 2*cube, 2*cube, 2*cube, hlength/cube, hlength/cube, hlength/cube);
 	}
@@ -559,8 +583,8 @@ int bleargh()
 }
 int main()
 {
-  //bleargh();
-  //exit(0);
+	bleargh();
+	exit(0);
 	int latitudes=70, longitudes=70;
 	double cube=97;
 	double** cubes = nullptr;
