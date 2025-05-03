@@ -13,7 +13,7 @@ const double L = 10.0;  // Total length (-5 to 5)
 const double dx = L / (N - 1);  // Grid spacing
 const double V0 = 1.0;  // Central column potential
 const double tolerance = 1e-6;  // Convergence tolerance
-const int max_iterations = 10000;
+const int max_iterations = 1;
 double dt;
 
 // 3D vector to store potential values
@@ -131,7 +131,8 @@ std::vector<std::vector<std::vector<double>>> divselfadvect(std::vector< std::ve
             for (int k = 0; k < N; k++) {
                 //cycle through 3 directions:
                 for (int l = 0; l < 3; ++l)
-                    Q[i][j][k] += 3*partdif(v, i, j, k, N, dx, l % 3, (l + 1) % 3) * partdif(v, i, j, k, N, dx, (l + 1) % 3, (l) % 3);
+                    for(int m=0; m<3; ++m)
+                    Q[i][j][k] += partdif(v, i, j, k, N, dx, l, m) * partdif(v, i, j, k, N, dx, m, l);
                 
             }
         }
