@@ -2,6 +2,8 @@
 #include <vector>
 #include <cmath>
 #include <fstream>
+#include <limits>
+#include <algorithm>
 #include "utilities.hpp"
 
 // Demonstrates how to solve laplace equation numerically for a stick.
@@ -28,6 +30,58 @@ std::vector<std::vector < std::vector <std::vector<double>>>> veldiv(3,
     std::vector < std::vector <std::vector<double>>>(N,
         std::vector <std::vector<double>>
         (N, std::vector<double>(N, 0))));
+
+template <typename T>
+void statVector(const std::vector<std::vector<std::vector<double>>>& V, T & minVal, T & maxVal, T & avg){
+    minVal = std::numeric_limits<T>::max();
+    maxVal = std::numeric_limits<T>::min();
+
+		T sum = 0;
+		size_t N = 0;
+		
+    for (const auto& vec2D : V) {
+        for (const auto& vec1D : vec2D) {
+            for (T val : vec1D) {
+                minVal = std::min(minVal, val);
+                maxVal = std::max(maxVal, val);
+								sum = sum + val;
+								N ++;
+            }
+        }
+    }
+		if (N > 0) avg = sum/N;
+		else avg = 0;
+		
+		return;
+}
+
+template <typename T>
+void statVector(const std::vector<std::vector<std::vector<std::vector<double>>>>& V, T & minVal, T & maxVal, T & avg){
+    minVal = std::numeric_limits<T>::max();
+    maxVal = std::numeric_limits<T>::min();
+
+		T sum = 0;
+		size_t N = 0;
+		
+		for (const auto& vec3D: V){
+			for (const auto& vec2D : vec3D) {
+					for (const auto& vec1D : vec2D) {
+							for (T val : vec1D) {
+									minVal = std::min(minVal, val);
+									maxVal = std::max(maxVal, val);
+									sum = sum + val;
+									N ++;
+							}
+					}
+			}
+		}
+		if (N > 0) avg = sum/N;
+		else avg = 0;
+		
+		return;
+}
+
+
 void writeVTK(const std::vector<std::vector<std::vector<double>>>& V, const std::string& filename) {
     std::ofstream vtkFile(filename);
 
@@ -202,9 +256,14 @@ void solveGaussSeidel(std::vector<std::vector<std::vector<double>>>& V, std::vec
     int iter = 0;
     const double h2 = dx * dx;  // Grid spacing squared
     int mid = N / 2;
+		double minVal, maxVal, avgVal;
     do {
         boundary(V, v,10);
+				statVector(v, minVal, maxVal, avgVal);
+				std::cout << "velocity minVal = " << minVal << " maxVal = " << maxVal << " avgVal = " << avgVal << std::endl;
         std::vector<std::vector<std::vector<double>>> A = divselfadvect(v);
+				statVector(A, minVal, maxVal, avgVal);
+				std::cout << "pdv_i v_j * pdv_j v_i minVal = " << minVal << " maxVal = " << maxVal << " avgVal = " << avgVal << std::endl;
         maxDiff = 0.0;
         // Interior points - 2nd order central difference
         for (int i = 1; i < N - 1; i++) {
