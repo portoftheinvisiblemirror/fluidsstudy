@@ -165,13 +165,46 @@ void timestepvelocity(std::vector< std::vector<std::vector<std::vector<double>>>
     }
     v = velnew;
 }
+void boundary(std::vector<std::vector<std::vector<double>>>& V, std::vector< std::vector<std::vector<std::vector<double>>>>& v, double v0) //water flows in through the x direction, walls are the planes parallel to xz and xy planes
+{
+    for (int i = 0; i < N; ++i)
+    {
+        for (int j = 0; j < N; ++j)
+        {
+            //set inlet velocity
+            v[0][0][i][j] = v0;
+            v[1][0][i][j] = 0;
+            v[2][0][i][j] = 0;
+
+            //the velocity at a wall is zero
+            v[0][i][0][j] = 0;
+            v[1][i][0][j] = 0;
+            v[2][i][0][j] = 0;
+            v[0][i][N - 1][j] = 0;
+            v[1][i][N - 1][j] = 0;
+            v[2][i][N - 1][j] = 0;
+            v[0][i][j][0] = 0;
+            v[1][i][j][0] = 0;
+            v[2][i][j][0] = 0;
+            v[0][i][j][N - 1] = 0;
+            v[1][i][j][N - 1] = 0;
+            v[2][i][j][N - 1] = 0;
+
+            //the pressure at an outlet is zero
+            V[N - 1][i][j] = 0;
+            //directional derivative of pressure against wall is zero
+        }
+    }
+}
+
 void solveGaussSeidel(std::vector<std::vector<std::vector<double>>>& V, std::vector< std::vector<std::vector<std::vector<double>>>>& v) {
     double maxDiff;
     int iter = 0;
     const double h2 = dx * dx;  // Grid spacing squared
     int mid = N / 2;
-    std::vector<std::vector<std::vector<double>>> A = divselfadvect(v);
     do {
+        boundary(V, v,10);
+        std::vector<std::vector<std::vector<double>>> A = divselfadvect(v);
         maxDiff = 0.0;
         // Interior points - 2nd order central difference
         for (int i = 1; i < N - 1; i++) {
@@ -194,6 +227,7 @@ void solveGaussSeidel(std::vector<std::vector<std::vector<double>>>& V, std::vec
                 }
             }
         }
+        printf("at the end of iteration: %f\n ", maxDiff);
 
         // Boundary points - 2nd order one-sided differences
         // x boundaries (i = 0 and i = N-1)
@@ -215,7 +249,7 @@ void solveGaussSeidel(std::vector<std::vector<std::vector<double>>>& V, std::vec
                 maxDiff = std::max(maxDiff, std::abs(V[N - 1][j][k] - oldV));
             }
         }
-
+        printf("at the end of iteration: %f\n ", maxDiff);
         // y boundaries (j = 0 and j = N-1)
         for (int i = 0; i < N; i++) {
             for (int k = 0; k < N; k++) {
@@ -230,7 +264,7 @@ void solveGaussSeidel(std::vector<std::vector<std::vector<double>>>& V, std::vec
                 maxDiff = std::max(maxDiff, std::abs(V[i][N - 1][k] - oldV));
             }
         }
-
+        printf("at the end of iteration: %f\n ", maxDiff);
         // z boundaries (k = 0 and k = N-1)
         for (int i = 0; i < N; i++) {
             for (int j = 0; j < N; j++) {
@@ -245,33 +279,20 @@ void solveGaussSeidel(std::vector<std::vector<std::vector<double>>>& V, std::vec
                 maxDiff = std::max(maxDiff, std::abs(V[i][j][N - 1] - oldV));
             }
         }
+        printf("at the end of iteration: %f\n ", maxDiff);
         timestepvelocity(vel, V, dx, 10);
         iter++;
 
         if (iter % 100 == 0) {
             std::cout << "Iteration " << iter << ", max difference = " << maxDiff << std::endl;
         }
+        printf("at the end of iteration: %f\n ", maxDiff);
     } while (maxDiff > tolerance && iter < max_iterations);
 
     std::cout << "Converged after " << iter << " iterations" << std::endl;
 }
 
-
 int main() {
-    // Initialize V to zero
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
-            for (int k = 0; k < N; k++) {
-                V[i][j][k] = 0.0;
-            }
-        }
-    }
-
-    // Set central column to V0
-    int mid = N / 2;
-    for (int k = N / 4; k < 3 * N / 4; k++) {
-        V[mid][mid][k] = V0;
-    }
     double Re = 10;
     // Solve using Gauss-Seidel method
     solveGaussSeidel(V,vel);
