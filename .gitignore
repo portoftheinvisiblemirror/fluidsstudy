@@ -1,5 +1,8 @@
 cubyboxy
 test4dalloc
+demo
+ns2d_solver
+ns3d_solver
 assembly.txt
 *.vtk
 *.o

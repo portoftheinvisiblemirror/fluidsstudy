@@ -21,9 +21,14 @@ private:
     std::vector<std::vector<std::vector<double>>> v_temp;
     std::vector<std::vector<std::vector<double>>> w_temp;
 
+    // Add obstacle parameters
+    double obstacleX, obstacleY, obstacleZ, obstacleR;
+    bool hasObstacle;
+
     // Helper methods
     void solvePoisson();
     void applyBoundaryConditions();
+    bool isInsideObstacle(double x, double y, double z) const;
     
 public:
     NavierStokesSolver3D(int nx, int ny, int nz, double dx, double dy, double dz, 
@@ -36,6 +41,9 @@ public:
     const std::vector<std::vector<std::vector<double>>>& getV() const { return v; }
     const std::vector<std::vector<std::vector<double>>>& getW() const { return w; }
     const std::vector<std::vector<std::vector<double>>>& getP() const { return p; }
+
+    // Add method to set obstacle
+    void setObstacle(double x, double y, double z, double r);
 };
 
 #endif 

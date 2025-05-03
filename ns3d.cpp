@@ -27,6 +27,15 @@ void NavierStokesSolver3D::solvePoisson() {
         for (int i = 1; i < nx-1; i++) {
             for (int j = 1; j < ny-1; j++) {
                 for (int k = 1; k < nz-1; k++) {
+                    double x = i*dx;
+                    double y = j*dy;
+                    double z = k*dz;
+                    
+                    // Skip pressure calculation inside obstacle
+                    if (isInsideObstacle(x, y, z)) {
+                        continue;
+                    }
+
                     double div = (u[i+1][j][k] - u[i-1][j][k])/(2*dx) +
                                 (v[i][j+1][k] - v[i][j-1][k])/(2*dy) +
                                 (w[i][j][k+1] - w[i][j][k-1])/(2*dz);
@@ -99,6 +108,18 @@ void NavierStokesSolver3D::step() {
     for (int i = 1; i < nx-1; i++) {
         for (int j = 1; j < ny-1; j++) {
             for (int k = 1; k < nz-1; k++) {
+                double x = i*dx;
+                double y = j*dy;
+                double z = k*dz;
+                
+                // Skip calculations inside obstacle
+                if (isInsideObstacle(x, y, z)) {
+                    u[i][j][k] = 0.0;
+                    v[i][j][k] = 0.0;
+                    w[i][j][k] = 0.0;
+                    continue;
+                }
+
                 // Convective terms
                 double u_dx = (u_temp[i+1][j][k] - u_temp[i-1][j][k])/(2*dx);
                 double u_dy = (u_temp[i][j+1][k] - u_temp[i][j-1][k])/(2*dy);
@@ -152,4 +173,20 @@ void NavierStokesSolver3D::step() {
     
     // Apply boundary conditions
     applyBoundaryConditions();
+}
+
+void NavierStokesSolver3D::setObstacle(double x, double y, double z, double r) {
+    obstacleX = x;
+    obstacleY = y;
+    obstacleZ = z;
+    obstacleR = r;
+    hasObstacle = true;
+}
+
+bool NavierStokesSolver3D::isInsideObstacle(double x, double y, double z) const {
+    if (!hasObstacle) return false;
+    double dx = x - obstacleX;
+    double dy = y - obstacleY;
+    double dz = z - obstacleZ;
+    return (dx*dx + dy*dy + dz*dz) <= obstacleR*obstacleR;
 } 

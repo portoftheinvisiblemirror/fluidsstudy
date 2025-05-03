@@ -1,5 +1,5 @@
 $(wildcard $(SOURCEDIR)/*.tex)
-all: cubyboxy test4dalloc ns2d_solver ns3d_solver testeigen iterative
+all: cubyboxy test4dalloc ns2d_solver ns3d_solver testeigen iterative demo
 .cpp.o:
 	g++ -I/usr/include/eigen3/Eigen -std=c++11 -c -g -O3 -o $@ $<
 cubyboxy: cubyboxy.o mem.o utilities.o vtk.o
@@ -13,6 +13,8 @@ testeigen: testeigen.o
 ns2d_solver: ns2d_solver.o ns2d.o vtk.o
 	g++ -O3 -o $@ $^
 ns3d_solver: ns3d_solver.o ns3d.o vtk.o
+	g++ -O3 -o $@ $^
+demo: demo.o
 	g++ -O3 -o $@ $^
 clean:
 	rm cubyboxy cubyboxy.o mem.o utilities.o test4dalloc.o iterative iterative.o 

@@ -21,6 +21,8 @@ struct parameters{
 };
 
 void writeVTK(const std::string& filename, const std::vector<double>& points, const QhullFacetList& facets) ;
+void writeVTK(const std::string& filename, const std::vector<double>& points, 
+              const QhullFacetList& facets, const parameters& para) ;
 
 // Function to check if a grid cell intersects with sphere
 bool intersectsSphere(const double x, const double y, const double z, const parameters & p){
@@ -99,7 +101,7 @@ int calc_area(const parameters para) {
 #endif
 
         // Write the VTK file
-        writeVTK("sphere_intersection.vtk", points, facets);
+        writeVTK("sphere_intersection.vtk", points, facets, para);
 
         for(const QhullFacet& facet : facets) {
             // Only include facets that are not at infinity
@@ -180,12 +182,14 @@ int calc_area(const parameters para) {
 }
 
 /**
- * Writes the intersecting points and facets to a VTK file
+ * Writes the intersecting points and facets to a VTK file with grid cell indices
  * @param filename The name of the output VTK file
  * @param points Vector of point coordinates (x1,y1,z1,x2,y2,z2,...)
  * @param facets List of facets from Qhull
+ * @param para Parameters including grid spacing
  */
-void writeVTK(const std::string& filename, const std::vector<double>& points, const QhullFacetList& facets) {
+void writeVTK(const std::string& filename, const std::vector<double>& points, 
+              const QhullFacetList& facets, const parameters& para) {
     std::ofstream outFile(filename);
     if (!outFile.is_open()) {
         std::cerr << "Error: Could not open file " << filename << " for writing." << std::endl;
@@ -221,14 +225,8 @@ void writeVTK(const std::string& filename, const std::vector<double>& points, co
     // Write polygons (facets)
     outFile << "POLYGONS " << validFacets << " " << (validFacets + totalVertices) << "\n";
     
-    // Create a map to store point coordinates to index
-    std::map<std::vector<double>, int> coordToIndex;
-    
-    // Build the coordinate to index mapping
-    for (int i = 0; i < numPoints; i++) {
-        std::vector<double> coord = {points[i*3], points[i*3+1], points[i*3+2]};
-        coordToIndex[coord] = i;
-    }
+    // Store facet indices for later use in cell data
+    std::vector<std::vector<int>> facetGridIndices;
     
     // Write facets
     for (const QhullFacet& facet : facets) {
@@ -238,6 +236,8 @@ void writeVTK(const std::string& filename, const std::vector<double>& points, co
         if (vertices.size() < 3) continue;
         
         outFile << vertices.size();
+        std::vector<int> vertexIndices;
+        
         for (const QhullVertex& vertex : vertices) {
             // Get the point coordinates from the vertex
             QhullPoint point = vertex.point();
@@ -263,8 +263,60 @@ void writeVTK(const std::string& filename, const std::vector<double>& points, co
             }
             
             outFile << " " << vertexIndex;
+            vertexIndices.push_back(vertexIndex);
         }
         outFile << "\n";
+        
+        // Store the grid indices for this facet
+        facetGridIndices.push_back(vertexIndices);
+    }
+    
+    // Write cell data (grid indices)
+    outFile << "CELL_DATA " << validFacets << "\n";
+    
+    // Write i-indices
+    outFile << "SCALARS i_index int 1\n";
+    outFile << "LOOKUP_TABLE default\n";
+    for (const auto& indices : facetGridIndices) {
+        // Calculate average i-index for the facet
+        double avgI = 0.0;
+        for (int idx : indices) {
+            double x = points[idx*3];
+            int i = static_cast<int>((x + 1.0) / para.dx);
+            avgI += i;
+        }
+        avgI /= indices.size();
+        outFile << static_cast<int>(std::round(avgI)) << "\n";
+    }
+    
+    // Write j-indices
+    outFile << "SCALARS j_index int 1\n";
+    outFile << "LOOKUP_TABLE default\n";
+    for (const auto& indices : facetGridIndices) {
+        // Calculate average j-index for the facet
+        double avgJ = 0.0;
+        for (int idx : indices) {
+            double y = points[idx*3 + 1];
+            int j = static_cast<int>((y + 1.0) / para.dy);
+            avgJ += j;
+        }
+        avgJ /= indices.size();
+        outFile << static_cast<int>(std::round(avgJ)) << "\n";
+    }
+    
+    // Write k-indices
+    outFile << "SCALARS k_index int 1\n";
+    outFile << "LOOKUP_TABLE default\n";
+    for (const auto& indices : facetGridIndices) {
+        // Calculate average k-index for the facet
+        double avgK = 0.0;
+        for (int idx : indices) {
+            double z = points[idx*3 + 2];
+            int k = static_cast<int>((z + 1.0) / para.dz);
+            avgK += k;
+        }
+        avgK /= indices.size();
+        outFile << static_cast<int>(std::round(avgK)) << "\n";
     }
     
     outFile.close();

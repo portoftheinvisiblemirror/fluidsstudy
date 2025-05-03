@@ -37,6 +37,9 @@ int main() {
     // Initialize solver
     NavierStokesSolver3D solver(nx, ny, nz, dx, dy, dz, dt, rho, mu);
 
+    // Set obstacle
+    solver.setObstacle(obstacleX, obstacleY, obstacleZ, obstacleR);
+
     // Set initial conditions - inlet velocity profile (parabolic)
     auto& u = const_cast<std::vector<std::vector<std::vector<double>>>&>(solver.getU());
     for (int i = 0; i < nx; i++) {
