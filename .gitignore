@@ -372,5 +372,4 @@ MigrationBackup/
 FodyWeavers.xsd
 /iterative
 /testeigen
-/makefile
 /stick_lambda
