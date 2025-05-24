@@ -13,7 +13,7 @@ const double L = 10.0;  // Total length (-5 to 5)
 const double dx = L / (N - 1);  // Grid spacing
 const double V0 = 1.0;  // Central column potential
 const double tolerance = 1e-6;  // Convergence tolerance
-const int max_iterations = 2;
+const int max_iterations = 5;
 double dt;
 const double u0 = 10;
 // 3D vector to store potential values
@@ -66,30 +66,53 @@ void statVector(const std::vector<std::vector<std::vector<double>>>& V, T & minV
 }
 
 template <typename T>
-void statVector(const std::vector<std::vector<std::vector<std::vector<double>>>>& V, T & minVal, T & maxVal, T & avg){
+void statVector(std::vector<std::vector<std::vector<std::vector<double>>>>& V, T & minVal, T & maxVal, T & avg){
     minVal = std::numeric_limits<T>::max();
     maxVal = std::numeric_limits<T>::min();
-
+    T val;
 		T sum = 0;
-		size_t N = 0;
-		
-		for (const auto& vec3D: V){
-			for (const auto& vec2D : vec3D) {
-					for (const auto& vec1D : vec2D) {
-							for (T val : vec1D) {
-									minVal = std::min(minVal, val);
-									maxVal = std::max(maxVal, val);
-									sum = sum + val;
-									N ++;
-							}
-					}
-			}
-		}
+		size_t Nn = 0;
+        for (int i = 1; i < N; ++i) {
+            for (int j = 0; j < N; ++j) {
+                for (int k = 0; k < N; ++k) {
+                    for (int l = 0; l < 3; ++l)
+                    {
+                        if (V[l][i][j][k] < minVal)
+                        {
+                            minVal = V[l][i][j][k];
+                            printf("new minval found at: (%d,%d,%d,%f) at component %d\n", i, j, k, minVal,l);
+                            if (minVal < -10)
+                            {
+                                minVal = -10;
+                                V[l][i][j][k] = -10;
+                            }
+                        }
+                        if (V[l][i][j][k] > maxVal)
+                        {
+                            maxVal = V[l][i][j][k];
+                            printf("new maxval found at: (%d,%d,%d,%f) at component %d\n", i, j, k, maxVal,l);
+                            if (maxVal > 10)
+                            {
+                                maxVal = 10;
+                                V[l][i][j][k] = 10;
+                            }
+                        }
+                        /*minVal = std::min(minVal, val);
+                        maxVal = std::max(maxVal, val);*/
+                        sum = sum + val;
+                        Nn++;
+                    }
+                    
+                }
+            }
+        }
+
 		if (N > 0) avg = sum/N;
 		else avg = 0;
 		
 		return;
 }
+
 
 
 void writeVTK(const std::vector<std::vector<std::vector<double>>>& V, const std::string& filename) {
@@ -177,7 +200,7 @@ std::vector<double> laplacian(std::vector< std::vector<std::vector<std::vector<d
     {
         for (int j = 0; j < 3; ++j)
         {
-            Q[i] = partdif2(v, x, y, z, N, dx, i, j);
+            Q[i] += partdif2(v, x, y, z, N, dx, i, j);
         }
     }
     return Q;
@@ -211,6 +234,7 @@ void timestepvelocity(std::vector< std::vector<std::vector<std::vector<double>>>
 {
     double vmax = findvmax(v, N);
     dt = 0.5 * h / vmax;
+    std::cout << dt << "\n";
     std::vector<std::vector < std::vector <std::vector<double>>>> velnew(3,
         std::vector < std::vector <std::vector<double>>>(N,
             std::vector <std::vector<double>>
@@ -223,7 +247,7 @@ void timestepvelocity(std::vector< std::vector<std::vector<std::vector<double>>>
                 std::vector<double> laplace = laplacian(v, i, j, k);
                 for (int l = 0; l < 3; ++l)
                 {
-                    velnew[l][i][j][k] = vel[l][i][j][k] - dt * (vnv[l] - grad[l] + laplace[l] / Re);
+                    velnew[l][i][j][k] = vel[l][i][j][k] + dt * (vnv[l] - grad[l] + laplace[l] / Re);
                 }
             }
         }
@@ -255,9 +279,14 @@ void boundary(std::vector<std::vector<std::vector<double>>>& V, std::vector< std
             v[1][i][j][N - 1] = 0;
             v[2][i][j][N - 1] = 0;
 
-            //the pressure at an outlet is zero
-            V[N - 1][i][j] = 0;
+            //the pressure in the inlet is constant
+            V[0][i][j]= 100;
             //directional derivative of pressure against wall is zero
+            //gradients at outlet are zero
+            V[N - 1][i][j] = V[N - 2][i][j];
+            v[0][N-1][i][j] = v[0][N - 2][i][j];
+            v[1][N-1][i][j] = v[1][N - 2][i][j];
+            v[2][N-1][i][j] = v[2][N - 2][i][j];
         }
     }
 }
@@ -426,6 +455,8 @@ void solveGaussSeidel(std::vector<std::vector<std::vector<double>>>& V, std::vec
         //}
         //printf("at the end of iteration: %f\n ", maxDiff);
         timestepvelocity(v, V, dx, 10);
+        printf("x component at (1,50,50) is %f\n", v[0][1][50][50]);
+        boundary(V, v, u0);
         statVector(v, minVal, maxVal, avgVal);
         std::cout << "velocity minVal = " << minVal << " maxVal = " << maxVal << " avgVal = " << avgVal << std::endl;
         iter++;
