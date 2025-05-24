@@ -13,9 +13,23 @@ const double L = 10.0;  // Total length (-5 to 5)
 const double dx = L / (N - 1);  // Grid spacing
 const double V0 = 1.0;  // Central column potential
 const double tolerance = 1e-6;  // Convergence tolerance
-const int max_iterations = 2;
+const int max_iterations = 10;
 double dt;
 const double u0 = 10;
+const double Re = 10;
+
+void print_setup(){
+  std::cout << "%----------------------------------" << std::endl;
+  std::cout << "Control parameters:" << std::endl;
+  std::cout << "N = " << N << std::endl;
+  std::cout << "L = " << L << std::endl;
+  std::cout << "dx = " << dx << std::endl;
+  std::cout << "max_iter = " << max_iterations << std::endl;
+  std::cout << "P0 = " << V0 << std::endl;
+  std::cout << "u0 = " << u0 << std::endl;
+  std::cout << "Re = " << Re << std::endl;
+  std::cout << "%----------------------------------" << std::endl;
+}
 // 3D vector to store potential values
 std::vector<std::vector<std::vector<double>>> V(N,
     std::vector<std::vector<double>>(N,
@@ -32,67 +46,92 @@ std::vector<std::vector < std::vector <std::vector<double>>>> veldiv(3,
         (N, std::vector<double>(N, 0))));
 
 template <typename T>
-void statVector(const std::vector<std::vector<std::vector<double>>>& V, T & minVal, T & maxVal, T & avg){
+void statVector(const std::vector<std::vector<std::vector<double>>>& V, T & minVal, T & maxVal, T & avg, const std::string & varname="Pressure"){
     minVal = std::numeric_limits<T>::max();
     maxVal = std::numeric_limits<T>::min();
-    T val;
-		T sum = 0;
-		size_t Nn = 0;
-		
-        for (int i = 0; i < N; ++i) {
+    T sum = 0;
+    int min_i, min_j, min_k, max_i, max_j, max_k;
+    size_t Nn = 0;
+    
+    for (int i = 0; i < N; ++i) {
         for (int j = 0; j < N; ++j) {
             for (int k = 0; k < N; ++k) {
                 if (V[i][j][k] < minVal)
                 {
                     minVal = V[i][j][k];
-                    printf("new minval found at: (%d,%d,%d,%f)\n", i, j, k,minVal);
+                    //printf("new minval found at: (%d,%d,%d,%f)\n", i, j, k,minVal);
+                    min_i = i, min_j = j, min_k = k;
                 }
                 if (V[i][j][k] > maxVal)
                 {
                     maxVal = V[i][j][k];
-                    printf("new maxval found at: (%d,%d,%d,%f)\n", i, j, k,maxVal);
+                    //printf("new maxval found at: (%d,%d,%d,%f)\n", i, j, k,maxVal);
+                    max_i = i, max_j = j, max_k = k;
                 }
                 /*minVal = std::min(minVal, val);
                 maxVal = std::max(maxVal, val);*/
-								sum = sum + val;
-								Nn ++;
+                sum = sum + V[i][j][k];
+                Nn ++;
             }
         }
     }
-		if (Nn > 0) avg = sum/Nn;
-		else avg = 0;
-		
-		return;
+    if (Nn > 0) avg = sum/Nn;
+    else avg = 0;
+    printf("%s minval found at: (%d,%d,%d,%f)\n", varname.c_str(), min_i, min_j, min_k,minVal);
+    printf("%s maxval found at: (%d,%d,%d,%f)\n", varname.c_str(), max_i, max_j, max_k,maxVal);
+    
+    return;
 }
 
 template <typename T>
-void statVector(const std::vector<std::vector<std::vector<std::vector<double>>>>& V, T & minVal, T & maxVal, T & avg){
+void statVector(const std::vector<std::vector<std::vector<std::vector<double>>>>& v, T & minVal, T & maxVal, T & avg, const std::string & varname = "u"){
     minVal = std::numeric_limits<T>::max();
     maxVal = std::numeric_limits<T>::min();
+    int min_i, min_j, min_k, max_i, max_j, max_k;
 
-		T sum = 0;
-		size_t N = 0;
-		
-		for (const auto& vec3D: V){
-			for (const auto& vec2D : vec3D) {
-					for (const auto& vec1D : vec2D) {
-							for (T val : vec1D) {
-									minVal = std::min(minVal, val);
-									maxVal = std::max(maxVal, val);
-									sum = sum + val;
-									N ++;
-							}
-					}
-			}
-		}
-		if (N > 0) avg = sum/N;
-		else avg = 0;
-		
-		return;
+    T sum = 0;
+    size_t Nn = 0;
+    
+    //for (const auto& vec3D: V){
+    //  for (const auto& vec2D : vec3D) {
+    //      for (const auto& vec1D : vec2D) {
+    //          for (T val : vec1D) {
+    //              minVal = std::min(minVal, val);
+    //              maxVal = std::max(maxVal, val);
+    //              sum = sum + val;
+    //              N ++;
+    //          }
+    //      }
+    //  }
+    //}
+    for (int i = 0; i < N; ++i) {
+        for (int j = 0; j < N; ++j) {
+            for (int k = 0; k < N; ++k) {
+                if (v[0][i][j][k] < minVal)
+                {
+                    minVal = v[0][i][j][k];
+                    min_i = i, min_j = j, min_k = k;
+                }
+                if (v[0][i][j][k] > maxVal)
+                {
+                    maxVal = v[0][i][j][k];
+                    max_i = i, max_j = j, max_k = k;
+                }
+                sum = sum + v[0][i][j][k];
+                Nn ++;
+            }
+        }
+    }
+    if (Nn > 0) avg = sum/Nn;
+    else avg = 0;
+    printf("%s minval found at: (%d,%d,%d,%f)\n", varname.c_str(), min_i, min_j, min_k,minVal);
+    printf("%s maxval found at: (%d,%d,%d,%f)\n", varname.c_str(), max_i, max_j, max_k,maxVal);
+    
+    return;
 }
 
 
-void writeVTK(const std::vector<std::vector<std::vector<double>>>& V, const std::string& filename) {
+void writeVTK(const std::vector<std::vector<std::vector<double>>>& V, const std::string varname, const std::string& filename) {
     std::ofstream vtkFile(filename);
 
     // VTK header
@@ -117,7 +156,7 @@ void writeVTK(const std::vector<std::vector<std::vector<double>>>& V, const std:
 
     // Point data (potential values)
     vtkFile << "POINT_DATA " << N * N * N << "\n";
-    vtkFile << "SCALARS potential float\n";
+    vtkFile << "SCALARS " << varname << " float\n";
     vtkFile << "LOOKUP_TABLE default\n";
 
     // Write potential values
@@ -211,6 +250,7 @@ void timestepvelocity(std::vector< std::vector<std::vector<std::vector<double>>>
 {
     double vmax = findvmax(v, N);
     dt = 0.5 * h / vmax;
+    std::cout << "dt = " << dt << std::endl;
     std::vector<std::vector < std::vector <std::vector<double>>>> velnew(3,
         std::vector < std::vector <std::vector<double>>>(N,
             std::vector <std::vector<double>>
@@ -223,7 +263,7 @@ void timestepvelocity(std::vector< std::vector<std::vector<std::vector<double>>>
                 std::vector<double> laplace = laplacian(v, i, j, k);
                 for (int l = 0; l < 3; ++l)
                 {
-                    velnew[l][i][j][k] = vel[l][i][j][k] - dt * (vnv[l] - grad[l] + laplace[l] / Re);
+                    velnew[l][i][j][k] = vel[l][i][j][k] + dt * (vnv[l] - grad[l] + laplace[l] / Re);
                 }
             }
         }
@@ -237,7 +277,7 @@ void boundary(std::vector<std::vector<std::vector<double>>>& V, std::vector< std
         for (int j = 0; j < N; ++j)
         {
             //set inlet velocity
-            v[0][0][i][j] = v0;
+            v[0][0][i][j] = v0*(1. - ((N/2.-i)*(N/2.-i) + (N/2.-j)*(N/2.-j))/(N*N));
             v[1][0][i][j] = 0;
             v[2][0][i][j] = 0;
 
@@ -268,13 +308,14 @@ void solveGaussSeidel(std::vector<std::vector<std::vector<double>>>& V, std::vec
     int iter = 0;
     const double h2 = dx * dx;  // Grid spacing squared
     int mid = N / 2;
-		double minVal, maxVal, avgVal;
+    double minVal, maxVal, avgVal;
         std::vector<std::vector<std::vector<double>>> Vtemp(V);
     do {
         boundary(V, v,u0);
+        std::cout << "u(0,50,50) " << v[0][0][50][50] << std::endl;
         std::vector<std::vector<std::vector<double>>> A = divselfadvect(v);
-				statVector(A, minVal, maxVal, avgVal);
-				std::cout << "pdv_i v_j * pdv_j v_i minVal = " << minVal << " maxVal = " << maxVal << " avgVal = " << avgVal << std::endl;
+        statVector(A, minVal, maxVal, avgVal, "pdv*pdv");
+        std::cout << "pdv_i v_j * pdv_j v_i minVal = " << minVal << " maxVal = " << maxVal << " avgVal = " << avgVal << std::endl;
 
         maxDiff = 0.0;
         // Interior points - 2nd order central difference
@@ -298,7 +339,7 @@ void solveGaussSeidel(std::vector<std::vector<std::vector<double>>>& V, std::vec
         //        }
         //    }
         //}
-        printf("at the end of iteration: %f\n ", maxDiff);
+        //printf("maxDiff at the end of iteration: %f\n", maxDiff);
 
         // Boundary points - 2nd order one-sided differences
         // x boundaries (i = 0 and i = N-1)
@@ -380,7 +421,7 @@ void solveGaussSeidel(std::vector<std::vector<std::vector<double>>>& V, std::vec
         boundary(V, v, u0);
         statVector(V, minVal, maxVal, avgVal);
         std::cout << "pressure minVal = " << minVal << " maxVal = " << maxVal << " avgVal = " << avgVal << std::endl;
-        printf("at the end of iteration: %f\n ", maxDiff);
+        printf("maxDiff(P) at the end of iteration: %f\n", maxDiff);
         //for (int j = 0; j < N; j++) {
         //    for (int k = 0; k < N; k++) {
         //        // Left boundary (i = 0) - forward difference
@@ -426,6 +467,7 @@ void solveGaussSeidel(std::vector<std::vector<std::vector<double>>>& V, std::vec
         //}
         //printf("at the end of iteration: %f\n ", maxDiff);
         timestepvelocity(v, V, dx, 10);
+        boundary(V, v, u0);
         statVector(v, minVal, maxVal, avgVal);
         std::cout << "velocity minVal = " << minVal << " maxVal = " << maxVal << " avgVal = " << avgVal << std::endl;
         iter++;
@@ -433,20 +475,21 @@ void solveGaussSeidel(std::vector<std::vector<std::vector<double>>>& V, std::vec
         if (iter % 100 == 0) {
             std::cout << "Iteration " << iter << ", max difference = " << maxDiff << std::endl;
         }
-        printf("at the end of iteration: %f\n ", maxDiff);
+        printf("maxDiff(v) at the end of iteration: %f\n", maxDiff);
+        std::cout << "%-----------------------------------------------------------------------------" << std::endl;
     } while (maxDiff > tolerance && iter < max_iterations);
 
     std::cout << "Converged after " << iter << " iterations" << std::endl;
 }
 
 int main() {
-    double Re = 10;
+    print_setup();
     // Solve using Gauss-Seidel method
     solveGaussSeidel(V,vel);
 
     // Write output to VTK file
-    writeVTK(V, "laplace3d.vtk");
-    writeVTK(vel[0], "velx.vtk");
+    writeVTK(V, "pressure", "laplace3d.vtk");
+    writeVTK(vel[0], "u", "velx.vtk");
 
     return 0;
 }
