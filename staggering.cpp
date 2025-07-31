@@ -1,4 +1,4 @@
-﻿#include <iostream>
+#include <iostream>
 #include <vector>
 #include <cmath>
 #include <fstream>
@@ -9,8 +9,12 @@
 // Demonstrates how to solve laplace equation numerically for a stick.
 
 const int N = 101;  // Grid size
+const int M = 101;
+const int O = 101;
 const double L = 10.0;  // Total length (-5 to 5)
 const double dx = L / (N - 1);  // Grid spacing
+const double dy = L / (M - 1);  // Grid spacing
+const double dz = L / (O - 1);  // Grid spacing
 const double V0 = 1.0;  // Central column potential
 const double tolerance = 1e-6;  // Convergence tolerance
 const int max_iterations = 10;
@@ -18,41 +22,41 @@ double dt;
 const double u0 = 10;
 const double Re = 10;
 
-void print_setup(){
-  std::cout << "%----------------------------------" << std::endl;
-  std::cout << "Control parameters:" << std::endl;
-  std::cout << "N = " << N << std::endl;
-  std::cout << "L = " << L << std::endl;
-  std::cout << "dx = " << dx << std::endl;
-  std::cout << "max_iter = " << max_iterations << std::endl;
-  std::cout << "P0 = " << V0 << std::endl;
-  std::cout << "u0 = " << u0 << std::endl;
-  std::cout << "Re = " << Re << std::endl;
-  std::cout << "%----------------------------------" << std::endl;
+void print_setup() {
+    std::cout << "%----------------------------------" << std::endl;
+    std::cout << "Control parameters:" << std::endl;
+    std::cout << "N = " << N << std::endl;
+    std::cout << "L = " << L << std::endl;
+    std::cout << "dx = " << dx << std::endl;
+    std::cout << "max_iter = " << max_iterations << std::endl;
+    std::cout << "P0 = " << V0 << std::endl;
+    std::cout << "u0 = " << u0 << std::endl;
+    std::cout << "Re = " << Re << std::endl;
+    std::cout << "%----------------------------------" << std::endl;
 }
 // 3D vector to store potential values
 std::vector<std::vector<std::vector<double>>> V(N,
     std::vector<std::vector<double>>(N,
         std::vector<double>(N, 0.0)));
 //velocities 0=x, 1=y, 2=z  (4d)
-std::vector<std::vector < std::vector <std::vector<double>>>> vel(3, 
-    std::vector < std::vector <std::vector<double>>>(N, 
-    std::vector <std::vector<double>>
-        (N, std::vector<double>(N, 0))));
+std::vector<std::vector < std::vector <std::vector<double>>>> vel(3,
+    std::vector < std::vector <std::vector<double>>>(N+1,
+        std::vector <std::vector<double>>
+        (N+1, std::vector<double>(N+1, 0))));
 
 std::vector<std::vector < std::vector <std::vector<double>>>> veldiv(3,
-    std::vector < std::vector <std::vector<double>>>(N,
+    std::vector < std::vector <std::vector<double>>>(N+1,
         std::vector <std::vector<double>>
-        (N, std::vector<double>(N, 0))));
+        (N+1, std::vector<double>(N+1, 0))));
 
 template <typename T>
-void statVector(const std::vector<std::vector<std::vector<double>>>& V, T & minVal, T & maxVal, T & avg, const std::string & varname="Pressure"){
+void statVector(const std::vector<std::vector<std::vector<double>>>& V, T& minVal, T& maxVal, T& avg, const std::string& varname = "Pressure") {
     minVal = std::numeric_limits<T>::max();
     maxVal = std::numeric_limits<T>::min();
     T sum = 0;
     int min_i, min_j, min_k, max_i, max_j, max_k;
     size_t Nn = 0;
-    
+
     for (int i = 0; i < N; ++i) {
         for (int j = 0; j < N; ++j) {
             for (int k = 0; k < N; ++k) {
@@ -71,27 +75,27 @@ void statVector(const std::vector<std::vector<std::vector<double>>>& V, T & minV
                 /*minVal = std::min(minVal, val);
                 maxVal = std::max(maxVal, val);*/
                 sum = sum + V[i][j][k];
-                Nn ++;
+                Nn++;
             }
         }
     }
-    if (Nn > 0) avg = sum/Nn;
+    if (Nn > 0) avg = sum / Nn;
     else avg = 0;
-    printf("%s minval found at: (%d,%d,%d,%f)\n", varname.c_str(), min_i, min_j, min_k,minVal);
-    printf("%s maxval found at: (%d,%d,%d,%f)\n", varname.c_str(), max_i, max_j, max_k,maxVal);
-    
+    printf("%s minval found at: (%d,%d,%d,%f)\n", varname.c_str(), min_i, min_j, min_k, minVal);
+    printf("%s maxval found at: (%d,%d,%d,%f)\n", varname.c_str(), max_i, max_j, max_k, maxVal);
+
     return;
 }
 
 template <typename T>
-void statVector(const std::vector<std::vector<std::vector<std::vector<double>>>>& v, T & minVal, T & maxVal, T & avg, const std::string & varname = "u"){
+void statVector(const std::vector<std::vector<std::vector<std::vector<double>>>>& v, T& minVal, T& maxVal, T& avg, const std::string& varname = "u") {
     minVal = std::numeric_limits<T>::max();
     maxVal = std::numeric_limits<T>::min();
     int min_i, min_j, min_k, max_i, max_j, max_k;
 
     T sum = 0;
     size_t Nn = 0;
-    
+
     //for (const auto& vec3D: V){
     //  for (const auto& vec2D : vec3D) {
     //      for (const auto& vec1D : vec2D) {
@@ -104,9 +108,9 @@ void statVector(const std::vector<std::vector<std::vector<std::vector<double>>>>
     //      }
     //  }
     //}
-    for (int i = 0; i < N; ++i) {
-        for (int j = 0; j < N; ++j) {
-            for (int k = 0; k < N; ++k) {
+    for (int i = 0; i < N+1; ++i) {
+        for (int j = 0; j < N+1; ++j) {
+            for (int k = 0; k < N+1; ++k) {
                 if (v[0][i][j][k] < minVal)
                 {
                     minVal = v[0][i][j][k];
@@ -118,15 +122,15 @@ void statVector(const std::vector<std::vector<std::vector<std::vector<double>>>>
                     max_i = i, max_j = j, max_k = k;
                 }
                 sum = sum + v[0][i][j][k];
-                Nn ++;
+                Nn++;
             }
         }
     }
-    if (Nn > 0) avg = sum/Nn;
+    if (Nn > 0) avg = sum / Nn;
     else avg = 0;
-    printf("%s minval found at: (%d,%d,%d,%f)\n", varname.c_str(), min_i, min_j, min_k,minVal);
-    printf("%s maxval found at: (%d,%d,%d,%f)\n", varname.c_str(), max_i, max_j, max_k,maxVal);
-    
+    printf("%s minval found at: (%d,%d,%d,%f)\n", varname.c_str(), min_i, min_j, min_k, minVal);
+    printf("%s maxval found at: (%d,%d,%d,%f)\n", varname.c_str(), max_i, max_j, max_k, maxVal);
+
     return;
 }
 
@@ -180,9 +184,9 @@ std::vector<std::vector<std::vector<double>>> divselfadvect(std::vector< std::ve
             for (int k = 0; k < N; k++) {
                 //cycle through 3 directions:
                 for (int l = 0; l < 3; ++l)
-                    for(int m=0; m<3; ++m)
-                    Q[i][j][k] += partdif(v, i, j, k, N, dx, l, m) * partdif(v, i, j, k, N, dx, m, l);
-                
+                    for (int m = 0; m < 3; ++m)
+                        Q[i][j][k] += partdif(v, i, j, k, N+1, dx, l, m) * partdif(v, i, j, k, N+1, dx, m, l);
+
             }
         }
     }
@@ -190,7 +194,7 @@ std::vector<std::vector<std::vector<double>>> divselfadvect(std::vector< std::ve
 }
 std::vector<double> selfadvect(std::vector< std::vector<std::vector<std::vector<double>>>>& v, int x, int y, int z) //d=0,1,2
 {
-    std::vector <double> Q(3,0);
+    std::vector <double> Q(3, 0);
     for (int i = 0; i < 3; ++i)
     {
         for (int j = 0; j < 3; ++j)
@@ -200,7 +204,7 @@ std::vector<double> selfadvect(std::vector< std::vector<std::vector<std::vector<
     }
     return Q;
 }
-std::vector<double> gradient(std::vector<std::vector<std::vector<double>>>& V, int x, int y ,int z)
+std::vector<double> gradient(std::vector<std::vector<std::vector<double>>>& V, int x, int y, int z)
 {
     std::vector<double>Q(3, 0);
     for (int i = 0; i < 3; ++i)
@@ -277,7 +281,7 @@ void boundary(std::vector<std::vector<std::vector<double>>>& V, std::vector< std
         for (int j = 0; j < N; ++j)
         {
             //set inlet velocity
-            v[0][0][i][j] = v0*(1. - ((N/2.-i)*(N/2.-i) + (N/2.-j)*(N/2.-j))/(N*N));
+            v[0][0][i][j] = v0 * (1. - ((N / 2. - i) * (N / 2. - i) + (N / 2. - j) * (N / 2. - j)) / (N * N));
             v[1][0][i][j] = 0;
             v[2][0][i][j] = 0;
 
@@ -296,13 +300,13 @@ void boundary(std::vector<std::vector<std::vector<double>>>& V, std::vector< std
             v[2][i][j][N - 1] = 0;
 
             //the pressure in the inlet is constant
-            V[0][i][j]= 100;
+            V[0][i][j] = 100;
             //directional derivative of pressure against wall is zero
             //gradients at outlet are zero
             V[N - 1][i][j] = V[N - 2][i][j];
-            v[0][N-1][i][j] = v[0][N - 2][i][j];
-            v[1][N-1][i][j] = v[1][N - 2][i][j];
-            v[2][N-1][i][j] = v[2][N - 2][i][j];
+            v[0][N - 1][i][j] = v[0][N - 2][i][j];
+            v[1][N - 1][i][j] = v[1][N - 2][i][j];
+            v[2][N - 1][i][j] = v[2][N - 2][i][j];
         }
     }
 }
@@ -314,9 +318,9 @@ void solveGaussSeidel(std::vector<std::vector<std::vector<double>>>& V, std::vec
     const double h2 = dx * dx;  // Grid spacing squared
     int mid = N / 2;
     double minVal, maxVal, avgVal;
-        std::vector<std::vector<std::vector<double>>> Vtemp(V);
+    std::vector<std::vector<std::vector<double>>> Vtemp(V);
     do {
-        boundary(V, v,u0);
+        boundary(V, v, u0);
         std::cout << "u(0,50,50) " << v[0][0][50][50] << std::endl;
         std::vector<std::vector<std::vector<double>>> A = divselfadvect(v);
         statVector(A, minVal, maxVal, avgVal, "pdv*pdv");
@@ -333,9 +337,9 @@ void solveGaussSeidel(std::vector<std::vector<std::vector<double>>>& V, std::vec
         //            double oldV = V[i][j][k];
         //            // Standard 7-point stencil for 3D Laplace equation
         //            // This is based on 2nd order central difference
-        //            //    0 = (V[i+1] - 2V + V[i-1])/dx² +
-        //            //     (V[j+1] - 2V + V[j-1])/dx² +
-        //            //     (V[k+1] - 2V + V[k-1])/dx²
+        //            //    0 = (V[i+1] - 2V + V[i-1])/dx� +
+        //            //     (V[j+1] - 2V + V[j-1])/dx� +
+        //            //     (V[k+1] - 2V + V[k-1])/dx�
         //            V[i][j][k] = (V[i + 1][j][k] + V[i - 1][j][k] +
         //                V[i][j + 1][k] + V[i][j - 1][k] +
         //                V[i][j][k + 1] + V[i][j][k - 1]+dx*dx*A[i][j][k]) / 6.0;
@@ -348,9 +352,9 @@ void solveGaussSeidel(std::vector<std::vector<std::vector<double>>>& V, std::vec
 
         // Boundary points - 2nd order one-sided differences
         // x boundaries (i = 0 and i = N-1)
-        //    V₁ = V₀ + h(∂V/∂x) + (h²/2)(∂²V/∂x²) + (h³/6)(∂³V/∂x³) + O(h⁴)
-        //    V₂ = V₀ + 2h(∂V/∂x) + 2h²(∂²V/∂x²) + (8h³/6)(∂³V/∂x³) + O(h⁴)
-        //    V₃ = V₀ + 3h(∂V/∂x) + (9h²/2)(∂²V/∂x²) + (27h³/6)(∂³V/∂x³) + O(h⁴)
+        //    V? = V? + h(?V/?x) + (h�/2)(?�V/?x�) + (h�/6)(?�V/?x�) + O(h?)
+        //    V? = V? + 2h(?V/?x) + 2h�(?�V/?x�) + (8h�/6)(?�V/?x�) + O(h?)
+        //    V? = V? + 3h(?V/?x) + (9h�/2)(?�V/?x�) + (27h�/6)(?�V/?x�) + O(h?)
         //    From the above difference equations, we solve for V0 at the boundary points
         //    V0 = (-)
         for (int i = 0; i < N; i++) {
@@ -359,7 +363,7 @@ void solveGaussSeidel(std::vector<std::vector<std::vector<double>>>& V, std::vec
                     int divisor = 0;
                     double sum = dx * dx * A[i][j][k];
                     //x
-                    if (i!=0 && i!=N-1)
+                    if (i != 0 && i != N - 1)
                     {
                         divisor += 2;
                         sum += V[i - 1][j][k] + V[i + 1][j][k];
@@ -367,7 +371,7 @@ void solveGaussSeidel(std::vector<std::vector<std::vector<double>>>& V, std::vec
                     else if (i == 0)
                     {
                         divisor -= 2;
-                        sum += -5 * V[i + 1][j][k] + 4*V[i + 2][j][k]-V[i+3][j][k];
+                        sum += -5 * V[i + 1][j][k] + 4 * V[i + 2][j][k] - V[i + 3][j][k];
                         //printf("%d %d %f\n", j, k, sum);
                     }
                     else
@@ -379,33 +383,33 @@ void solveGaussSeidel(std::vector<std::vector<std::vector<double>>>& V, std::vec
                     if (j != 0 && j != N - 1)
                     {
                         divisor += 2;
-                        sum += V[i][j-1][k] + V[i][j+1][k];
+                        sum += V[i][j - 1][k] + V[i][j + 1][k];
                     }
                     else if (j == 0)
                     {
                         divisor -= 2;
-                        sum += -5 * V[i][j+1][k] + 4 * V[i][j+2][k] - V[i][j+3][k];
+                        sum += -5 * V[i][j + 1][k] + 4 * V[i][j + 2][k] - V[i][j + 3][k];
                     }
                     else
                     {
                         divisor -= 2;
-                        sum += -5 * V[i][j-1][k] + 4 * V[i][j-2][k] - V[i][j-3][k];
+                        sum += -5 * V[i][j - 1][k] + 4 * V[i][j - 2][k] - V[i][j - 3][k];
                     }
                     //z
                     if (k != 0 && k != N - 1)
                     {
                         divisor += 2;
-                        sum += V[i][j][k-1] + V[i][j][k+1];
+                        sum += V[i][j][k - 1] + V[i][j][k + 1];
                     }
                     else if (k == 0)
                     {
                         divisor -= 2;
-                        sum += -5 * V[i][j][k+1] + 4 * V[i][j][k+2] - V[i][j][k+3];
+                        sum += -5 * V[i][j][k + 1] + 4 * V[i][j][k + 2] - V[i][j][k + 3];
                     }
                     else
                     {
                         divisor -= 2;
-                        sum += -5 * V[i][j][k-1] + 4 * V[i][j][k-2] - V[i][j][k-3];
+                        sum += -5 * V[i][j][k - 1] + 4 * V[i][j][k - 2] - V[i][j][k - 3];
                     }
                     //// Skip the central charged column
                     //if (i == mid && j == mid && (k >= N / 4 && k < 3 * N / 4)) continue;
@@ -413,10 +417,10 @@ void solveGaussSeidel(std::vector<std::vector<std::vector<double>>>& V, std::vec
                     double oldV = V[i][j][k];
                     // Standard 7-point stencil for 3D Laplace equation
                     // This is based on 2nd order central difference
-                    //    0 = (V[i+1] - 2V + V[i-1])/dx² +
-                    //     (V[j+1] - 2V + V[j-1])/dx² +
-                    //     (V[k+1] - 2V + V[k-1])/dx²
-                    Vtemp[i][j][k] = sum/divisor;
+                    //    0 = (V[i+1] - 2V + V[i-1])/dx� +
+                    //     (V[j+1] - 2V + V[j-1])/dx� +
+                    //     (V[k+1] - 2V + V[k-1])/dx�
+                    Vtemp[i][j][k] = sum / divisor;
 
                     maxDiff = std::max(maxDiff, std::abs(Vtemp[i][j][k] - oldV));
                 }
@@ -490,7 +494,7 @@ void solveGaussSeidel(std::vector<std::vector<std::vector<double>>>& V, std::vec
 int main() {
     print_setup();
     // Solve using Gauss-Seidel method
-    solveGaussSeidel(V,vel);
+    solveGaussSeidel(V, vel);
 
     // Write output to VTK file
     writeVTK(V, "pressure", "laplace3d.vtk");

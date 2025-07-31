@@ -373,3 +373,7 @@ FodyWeavers.xsd
 /iterative
 /testeigen
 /stick_lambda
+/flow
+/fluidsstudy.vcxproj.filters
+/navier
+/navier_stokes_3d_piso_stable.f90

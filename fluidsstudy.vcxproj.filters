@@ -27,4 +27,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="navier_stokes_3d_piso_stable.f90">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="navierdraft.cpp">
+      <Filter>Source Files</Filter>
+    </None>
+  </ItemGroup>
 </Project>

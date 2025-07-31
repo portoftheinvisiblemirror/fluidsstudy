@@ -25,6 +25,10 @@
   <ItemGroup>
     <ClInclude Include="utilities.hpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="navierdraft.cpp" />
+    <None Include="navier_stokes_3d_piso_stable.f90" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
