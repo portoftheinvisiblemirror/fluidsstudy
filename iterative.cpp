@@ -182,7 +182,7 @@ std::vector<std::vector<std::vector<double>>> divselfadvect(std::vector< std::ve
                 for (int l = 0; l < 3; ++l)
                     for(int m=0; m<3; ++m)
                     Q[i][j][k] += partdif(v, i, j, k, N, dx, l, m) * partdif(v, i, j, k, N, dx, m, l);
-                
+                if(Q[i][j][k] > 10000) Q[i][j][k] = 10000;
             }
         }
     }
