@@ -136,7 +136,7 @@ typedef double real;
         for (size_t j=0; j<ny; ++j)
             for (size_t k = 0; k < nz; ++k)
             {
-                if (radius[j][k] <= R && is_outside(0, j, k))
+                if (radius[j][k] <= R && !sphere[0][j][k])
                 {
                     u[0][j][k] = inlet_velocity * (1.0 - (radius[j][k] / R) * (radius[j][k] / R));
                 }
@@ -165,7 +165,7 @@ void solve_momentum_equations()
     for (size_t i = 1; i < nx - 1; ++i) {
         for (size_t j = 1; j < ny - 1; ++j) {
             for (size_t k = 1; k < nz - 1; ++k) {
-                if (radius[j][k] <= R &&is_outside(i,j,k)) {  // Only solve inside tube
+                if (radius[j][k] <= R &&!sphere[i][j][k]) {  // Only solve inside tube
                     // Convection terms (central differencing for stability)
                     conv_x = u[i][j][k] * (u[i + 1][j][k] - u[i - 1][j][k]) / (2.0 * dx);
                     conv_y = v[i][j][k] * (u[i][j + 1][k] - u[i][j - 1][k]) / (2.0 * dy);
@@ -191,7 +191,7 @@ void solve_momentum_equations()
     for (size_t i = 1; i < nx - 1; ++i) {
         for (size_t j = 1; j < ny - 1; ++j) {
             for (size_t k = 1; k < nz - 1; ++k) {
-                if (radius[j][k] <= R &&is_outside(i, j, k)) {
+                if (radius[j][k] <= R &&!sphere[i][j][k]) {
                     // Convection terms (central differencing)
                     conv_x = u[i][j][k] * (v[i + 1][j][k] - v[i - 1][j][k]) / (2.0 * dx);
                     conv_y = v[i][j][k] * (v[i][j + 1][k] - v[i][j - 1][k]) / (2.0 * dy);
@@ -217,7 +217,7 @@ void solve_momentum_equations()
     for (size_t i = 1; i < nx - 1; ++i) {
         for (size_t j = 1; j < ny - 1; ++j) {
             for (size_t k = 1; k < nz - 1; ++k) {
-                if (radius[j][k] <= R &&is_outside(i,j,k)) {
+                if (radius[j][k] <= R &&!sphere[i][j][k]) {
                     // Convection terms (central differencing)
                     conv_x = u[i][j][k] * (w[i + 1][j][k] - w[i - 1][j][k]) / (2.0 * dx);
                     conv_y = v[i][j][k] * (w[i][j + 1][k] - w[i][j - 1][k]) / (2.0 * dy);
@@ -246,7 +246,7 @@ void solve_pressure_correction() {
     for (size_t i = 1; i < nx - 1; ++i) {
         for (size_t j = 1; j < ny - 1; ++j) {
             for (size_t k = 1; k < nz - 1; ++k) {
-                if (radius[j][k] <= R && is_outside(i,j,k)) {
+                if (radius[j][k] <= R && !sphere[i][j][k]) {
                     Div[i][j][k] = (u_star[i + 1][j][k] - u_star[i - 1][j][k]) / (2.0 * dx) +
                         (v_star[i][j + 1][k] - v_star[i][j - 1][k]) / (2.0 * dy) +
                         (w_star[i][j][k + 1] - w_star[i][j][k - 1]) / (2.0 * dz);
@@ -263,7 +263,7 @@ void solve_pressure_correction() {
         for (size_t i = 1; i < nx - 1; ++i) {
             for (size_t j = 1; j < ny - 1; ++j) {
                 for (size_t k = 1; k < nz - 1; ++k) {
-                    if (radius[j][k] <= R && is_outside(i,j,k)) {
+                    if (radius[j][k] <= R && !sphere[i][j][k]) {
                         double p_new = (1.0 / 6.0) * (p_prime[i + 1][j][k] + p_prime[i - 1][j][k] +
                             p_prime[i][j + 1][k] + p_prime[i][j - 1][k] +
                             p_prime[i][j][k + 1] + p_prime[i][j][k - 1] -
@@ -282,7 +282,7 @@ void correct_pressure_velocity() {
     for (size_t i = 1; i < nx - 1; ++i) {
         for (size_t j = 1; j < ny - 1; ++j) {
             for (size_t k = 1; k < nz - 1; ++k) {
-                if (radius[j][k] <= R&& is_outside(i, j, k)) {
+                if (radius[j][k] <= R&& !sphere[i][j][k]) {
                     p[i][j][k] = p[i][j][k] + Beta * p_prime[i][j][k];
                 }
             }
@@ -293,7 +293,7 @@ void correct_pressure_velocity() {
     for (size_t i = 1; i < nx - 1; ++i) {
         for (size_t j = 1; j < ny - 1; ++j) {
             for (size_t k = 1; k < nz - 1; ++k) {
-                if (radius[j][k] <= R && is_outside(i, j, k)) {
+                if (radius[j][k] <= R && !sphere[i][j][k]) {
                     u[i][j][k] = u_star[i][j][k] - dt * (p_prime[i + 1][j][k] - p_prime[i - 1][j][k]) / (2.0 * dx * rho);
                     v[i][j][k] = v_star[i][j][k] - dt * (p_prime[i][j + 1][k] - p_prime[i][j - 1][k]) / (2.0 * dy * rho);
                     w[i][j][k] = w_star[i][j][k] - dt * (p_prime[i][j][k + 1] - p_prime[i][j][k - 1]) / (2.0 * dz * rho);
@@ -309,7 +309,7 @@ void check_convergence(double& max_Div, double& max_p_change) {
     for (size_t i = 1; i < nx - 1; ++i) {
         for (size_t j = 1; j < ny - 1; ++j) {
             for (size_t k = 1; k < nz - 1; ++k) {
-                if (radius[j][k] <= R && is_outside(i, j, k)) {
+                if (radius[j][k] <= R && !sphere[i][j][k]) {
                     max_Div = std::max(max_Div, std::abs(Div[i][j][k]));
                     max_p_change = std::max(max_p_change, std::abs(p_prime[i][j][k]));
                 }
@@ -323,7 +323,7 @@ void apply_boundary_conditions() {
     double inlet_velocity = 0.5;  // Reduced inlet velocity
     for (size_t j = 0; j < ny; ++j) {
         for (size_t k = 0; k < nz; ++k) {
-            if (radius[j][k] <= R && is_outside(0, j, k)) {
+            if (radius[j][k] <= R && !sphere[0][j][k]) {
                 u[0][j][k] = inlet_velocity * (1.0f - std::pow(radius[j][k] / R, 2));
                 v[0][j][k] = 0.0f;
                 w[0][j][k] = 0.0f;
@@ -350,7 +350,7 @@ void apply_boundary_conditions() {
     for (size_t i = 0; i < nx; ++i) {
         for (size_t j = 0; j < ny; ++j) {
             for (size_t k = 0; k < nz; ++k) {
-                if (radius[j][k] > R && is_outside(i, j, k)) {
+                if (radius[j][k] > R && !sphere[i][j][k]) {
                     u[i][j][k] = 0.0;
                     v[i][j][k] = 0.0;
                     w[i][j][k] = 0.0;
@@ -443,7 +443,7 @@ void output_final_results() {
     for (size_t i = 0; i < nx; ++i) {
         for (size_t j = 0; j < ny; ++j) {
             for (size_t k = 0; k < nz; ++k) {
-                if (radius[j][k] <= R && is_outside(i,j,k)) {
+                if (radius[j][k] <= R && !sphere[i][j][k]) {
                     vel_magnitude = std::sqrt(u[i][j][k] * u[i][j][k] + v[i][j][k] * v[i][j][k] + w[i][j][k] * w[i][j][k]);
                     max_velocity = std::max(max_velocity, vel_magnitude);
                     avg_velocity += vel_magnitude;
