@@ -389,6 +389,7 @@ double area(const double x0, const double y0, const double z0, const double dx, 
 				{
 					double a = i * dx, b = i * (1 + dx), c = j * dy - R, d = (j + 1) * dy - R, e = k * dz - R, f = (k + 1) * dz - R;
 					sum = sum + areal(radius, a, b, c, d, e, f, latitudes, longitudes, spheremesh, x0, y0, z0, st, dx, dy, dz, i, j, k);
+					std::cout << "Sum: " << sum << "\n";
 				}
 			}
 	/*finish = std::chrono::high_resolution_clock::now();
