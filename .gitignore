@@ -384,3 +384,6 @@ flow
 fluidsstudy.vcxproj.filters
 navier
 navier_stokes_3d_piso_stable.f90
+/staggerednavierdraft
+/test4dalloc
+/assembly.txt
