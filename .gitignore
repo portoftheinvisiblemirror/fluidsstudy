@@ -19,6 +19,14 @@ assembly.txt
 *.userosscache
 *.sln.docstates
 
+# 
+assembly.txt
+cubyboxy
+ns2d_solver
+ns3d_solver
+test4dalloc
+
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
@@ -369,13 +377,10 @@ MigrationBackup/
 .ionide/
 
 # Fody - auto-generated XML schema
-FodyWeavers.xsd
-/iterative
-/testeigen
-/stick_lambda
-/flow
-/fluidsstudy.vcxproj.filters
-/navier
-/navier_stokes_3d_piso_stable.f90
-/assembly.txt
-/makefile
+iterative
+testeigen
+stick_lambda
+flow
+fluidsstudy.vcxproj.filters
+navier
+navier_stokes_3d_piso_stable.f90
