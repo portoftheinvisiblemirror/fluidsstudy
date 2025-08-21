@@ -377,3 +377,5 @@ FodyWeavers.xsd
 /fluidsstudy.vcxproj.filters
 /navier
 /navier_stokes_3d_piso_stable.f90
+/assembly.txt
+/makefile
