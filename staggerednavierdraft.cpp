@@ -585,7 +585,7 @@ int main()
         auto start = std::chrono::high_resolution_clock::now();
         
         vector F, T;
-        std::tie(F,T)= forceandtorquestag(sphere, u, v, w, p, nx, ny, nz, dx, dy, dz, cx, cy, cz, R, r);
+        std::tie(F,T)= forceandtorquestag(sphere2, u, v, w, p, nx, ny, nz, dx, dy, dz, cx, cy, cz, R, r);
         angv = angv + T * dt / (2 * mass * r * r / 5);
         ucm = ucm + F * dt / mass;
         rcm = rcm + ucm * dt + F * dt * dt / (2 * mass);
@@ -617,7 +617,7 @@ int main()
         // Convert and display the duration in microseconds
         auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(duration).count();
         std::cout << "Execution time: " << microseconds << " microseconds" << std::endl;
-        
+               
     }
 
     // Final output

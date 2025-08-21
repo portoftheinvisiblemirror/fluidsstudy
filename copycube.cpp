@@ -329,7 +329,7 @@ vector force(const double x0, const double y0, const double z0, const double dx,
 	assert(spheremesh != nullptr);
 	for (int i = 0; i < nx; ++i)
 		for (int j = 0; j < ny; ++j)
-			for (int k = 0; k < nx; ++k)
+			for (int k = 0; k < nz; ++k)
 			{
 				if (sphere[i][j][k])
 				{
@@ -356,7 +356,7 @@ vector torque(const double x0, const double y0, const double z0, const double dx
 	assert(spheremesh != nullptr);
 	for (int i = 0; i<nx;++i)
 		for (int j = 0; j < ny; ++j)
-			for (int k = 0; k < nx; ++k)
+			for (int k = 0; k < nz; ++k)
 	{
 				if (sphere[i][j][k])
 				{
@@ -383,13 +383,14 @@ double area(const double x0, const double y0, const double z0, const double dx, 
 	assert(spheremesh != nullptr);
 	for (int i = 0; i < nx; ++i)
 		for (int j = 0; j < ny; ++j)
-			for (int k = 0; k < nx; ++k)
+			for (int k = 0; k < nz; ++k)
 			{
 				if (sphere[i][j][k])
 				{
 					double a = i * dx, b = i * (1 + dx), c = j * dy - R, d = (j + 1) * dy - R, e = k * dz - R, f = (k + 1) * dz - R;
+					double sum0 = sum;
 					sum = sum + areal(radius, a, b, c, d, e, f, latitudes, longitudes, spheremesh, x0, y0, z0, st, dx, dy, dz, i, j, k);
-					std::cout << "Sum: " << sum << "\n";
+					if(sum0!=sum) std::cout << "Sum: " << sum << " Radius: " << radius << " " <<a << "," << b << "," << c << "," << d << "," << e << "," << f << "\n";
 				}
 			}
 	/*finish = std::chrono::high_resolution_clock::now();
