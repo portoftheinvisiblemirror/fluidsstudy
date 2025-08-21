@@ -7,6 +7,7 @@
 #include <algorithm>
 #include "midpointsphere.h"
 #include "copycube.h"
+#include <tuple>
 void solve_momentum_equations();
 void solve_pressure_correction();
 void correct_pressure_velocity();
@@ -15,48 +16,46 @@ void apply_boundary_conditions();
 void output_results(size_t time_step, double time);
 void output_final_results();
 
+
 typedef double real;
-    //constants
-    size_t nx = 128, ny = 64, nz = 64;   // Smaller grid for testing
-    size_t max_iter = 6000;             // Maximum time steps
-    size_t n_correctors = 2;            // Fewer correctors
-    real dt = 1e-5;          // Much smaller time step
-    real Re = 50.0;                  // Lower Reynolds number
-    real nu = 1.0 / Re;                 // Kinematic viscosity
-    real rho = 1.0;              // Density
-    real L = 5.0;                  // Shorter tube
-    real R = 1.0;                    // Tube radius
-    real dx = L / (nx - 1.);      // Grid spacing in x
-    real dy = 2.0 * R / (ny - 1.);   // Grid spacing in y
-    real dz = 2.0 * R / (nz - 1.); // Grid spacing in z
-    real tolerance= 1.0e-4;          // Relaxed tolerance
-    real alpha = 0.5;         // Under-relaxation for velocity
-    real Beta = 0.3;                // Under-relaxation for pressure
-    real cx=2, cy=0, cz=0, r=0.3; //center coordinates of a sphere, radius of a sphere
-    // Arrays
-    std::vector<std::vector<std::vector<double>>> u, v, w;         // Velocity components
-    std::vector<std::vector<std::vector<double>>> p;               // Pressure
-    std::vector<std::vector<std::vector<double>>> u_old, v_old, w_old; // Old velocities
-    std::vector<std::vector<std::vector<double>>> p_old;           // Old pressure
-    std::vector<std::vector<std::vector<double>>> u_star, v_star, w_star; // Intermediate velocities
-    std::vector<std::vector<std::vector<double>>> p_prime;         // Pressure correction
-    std::vector<std::vector<std::vector<double>>> Div;                           // Divergence
-    std::vector<double> x, y, z;                                   // Grid coordinates
-    std::vector<std::vector<double>> radius, theta_coord;         // Cylindrical coordinates
-    std::vector<std::vector<std::vector<bool>>> sphere(nx, std::vector<std::vector<bool>>(ny, std::vector<bool>(nz))); //boolean sphere
-    std::vector<std::vector<std::vector<bool>>> sphere2(nx, std::vector<std::vector<bool>>(ny, std::vector<bool>(nz))); //boolean sphere
-    
-    void allocate_arrays()
-    {
-        u.resize(nx, std::vector<std::vector<double>>(ny, std::vector<double>(nz, 0.0)));
-    v.resize(nx, std::vector<std::vector<double>>(ny, std::vector<double>(nz, 0.0)));
-    w.resize(nx, std::vector<std::vector<double>>(ny, std::vector<double>(nz, 0.0)));
-    u_old.resize(nx, std::vector<std::vector<double>>(ny, std::vector<double>(nz, 0.0)));
-    v_old.resize(nx, std::vector<std::vector<double>>(ny, std::vector<double>(nz, 0.0)));
-    w_old.resize(nx, std::vector<std::vector<double>>(ny, std::vector<double>(nz, 0.0)));
-    u_star.resize(nx, std::vector<std::vector<double>>(ny, std::vector<double>(nz, 0.0)));
-    v_star.resize(nx, std::vector<std::vector<double>>(ny, std::vector<double>(nz, 0.0)));
-    w_star.resize(nx, std::vector<std::vector<double>>(ny, std::vector<double>(nz, 0.0)));
+//constants
+size_t nx = 128, ny = 64, nz = 64;   // Smaller grid for testing
+size_t max_iter = 6000;             // Maximum time steps
+size_t n_correctors = 2;            // Fewer correctors
+real dt = 1e-5;          // Much smaller time step
+real Re = 50.0;                  // Lower Reynolds number
+real nu = 1.0 / Re;                 // Kinematic viscosity
+real rho = 1.0;              // Density
+real L = 5.0;                  // Shorter tube
+real R = 1.0;                    // Tube radius
+real dx = L / (nx - 1.);      // Grid spacing in x
+real dy = 2.0 * R / (ny - 1.);   // Grid spacing in y
+real dz = 2.0 * R / (nz - 1.); // Grid spacing in z
+real tolerance = 1.0e-4;          // Relaxed tolerance
+real alpha = 0.5;         // Under-relaxation for velocity
+real Beta = 0.3;                // Under-relaxation for pressure
+real cx = 2, cy = 0, cz = 0, r = 0.3; //center coordinates of a sphere, radius of a sphere
+real mass = 1; //mass of the particle
+// Arrays
+std::vector<std::vector<std::vector<double>>> u, v, w;         // Velocity components
+std::vector<std::vector<std::vector<double>>> p;               // Pressure
+std::vector<std::vector<std::vector<double>>> u_old, v_old, w_old; // Old velocities
+std::vector<std::vector<std::vector<double>>> p_old;           // Old pressure
+std::vector<std::vector<std::vector<double>>> p_prime;         // Pressure correction
+std::vector<std::vector<std::vector<double>>> Div;                           // Divergence
+std::vector<double> x, y, z, xx, yy, zz;                                   // Grid coordinates
+std::vector<std::vector<double>> radius, theta_coord;         // Cylindrical coordinates
+std::vector<std::vector<std::vector<bool>>> sphere(nx, std::vector<std::vector<bool>>(ny, std::vector<bool>(nz,0))); //boolean sphere
+std::vector<std::vector<std::vector<bool>>> sphere2(nx, std::vector<std::vector<bool>>(ny, std::vector<bool>(nz,0))); //boolean sphere
+
+void allocate_arrays()
+{
+    u.resize(nx + 1, std::vector<std::vector<double>>(ny, std::vector<double>(nz, 0.0)));
+    v.resize(nx, std::vector<std::vector<double>>(ny + 1, std::vector<double>(nz, 0.0)));
+    w.resize(nx, std::vector<std::vector<double>>(ny, std::vector<double>(nz + 1, 0.0)));
+    u_old.resize(nx + 1, std::vector<std::vector<double>>(ny, std::vector<double>(nz, 0.0)));
+    v_old.resize(nx, std::vector<std::vector<double>>(ny + 1, std::vector<double>(nz, 0.0)));
+    w_old.resize(nx, std::vector<std::vector<double>>(ny, std::vector<double>(nz + 1, 0.0)));
     p.resize(nx, std::vector<std::vector<double>>(ny, std::vector<double>(nz, 0.0)));
     p_old.resize(nx, std::vector<std::vector<double>>(ny, std::vector<double>(nz, 0.0)));
     p_prime.resize(nx, std::vector<std::vector<double>>(ny, std::vector<double>(nz, 0.0)));
@@ -65,95 +64,106 @@ typedef double real;
     x.resize(nx, 0.0);
     y.resize(ny, 0.0);
     z.resize(nz, 0.0);
+    xx.resize(nx + 1, 0.0);
+    yy.resize(ny + 1, 0.0);
+    zz.resize(nz + 1, 0.0);
+
 
     radius.resize(ny, std::vector<double>(nz, 0.0));
     theta_coord.resize(ny, std::vector<double>(nz, 0.0));
     sphere = filledmidpointsphere(cx, cy, cz, dx, dy, dz, nx, ny, nz, r, R);
-    sphere2 = emptiedmidpointsphere(cx, cy, cz, dx, dy, dz, nx, ny, nz, r, R);
+    sphere2 = filledmidpointsphere(cx, cy, cz, dx, dy, dz, nx, ny, nz, r, R);
 }
-    
-    
-    void initialize_grid()
-    {
-        // Initialize Cartesian grid coordinates
-        for (size_t i = 0; i < nx; ++i)
-            x[i] = (i) * dx;
-        for (size_t i = 0; i < ny; ++i)
-            y[i] = -R+(i) * dy;
-        for (size_t i = 0; i < nz; ++i)
-            z[i] = -R+(i) * dz;
 
-                // Calculate cylindrical coordinates
-        double x_center = 0.0;
-        double y_center = 0.0;
-        for (size_t j = 0; j < ny; ++j)
+
+void initialize_grid()
+{
+    // Initialize Cartesian grid coordinates at the center
+    for (size_t i = 0; i < nx; ++i)
+        x[i] = (i + 0.5) * dx;
+    for (size_t i = 0; i < ny; ++i)
+        y[i] = -R + (i + 0.5) * dy;
+    for (size_t i = 0; i < nz; ++i)
+        z[i] = -R + (i + 0.5) * dz;
+    // Initialize Cartesian grid coordinates at each face
+    for (size_t i = 0; i < nx + 1; ++i)
+        xx[i] = (i)*dx;
+    for (size_t i = 0; i < ny + 1; ++i)
+        yy[i] = -R + (i)*dy;
+    for (size_t i = 0; i < nz + 1; ++i)
+        zz[i] = -R + (i)*dz;
+
+    // Calculate cylindrical coordinates
+    double x_center = 0.0;
+    double y_center = 0.0;
+    for (size_t j = 0; j < ny; ++j)
+    {
+        for (size_t k = 0; k < nz; ++k)
         {
-            for (size_t k = 0; k < nz; ++k)
+            double r_dist = sqrt((y[j] - y_center) * (y[j] - y_center) + (z[k] - y_center) * (z[k] - y_center));
+            radius[j][k] = r_dist;
+            theta_coord[j][k] = atan2(z[k] - y_center, y[j] - y_center);
+        }
+    }
+    std::cout << "Staggered Grid initialized : nx = " << nx << "ny = " << ny << "nz = " << nz;
+    std::cout << "Grid spacing: dx=" << dx << " dy=" << dy << " dz =" << dz;
+}
+
+double findvmax(const std::vector< std::vector<std::vector<std::vector<double>>>>& v, const int N)
+{
+    double Q = 0;
+    int x = 0;
+    int y = 0;
+    int z = 0;
+    for (int i = 0; i < N; ++i)
+    {
+        for (int j = 0; j < N; ++j)
+        {
+            for (int k = 0; k < N; ++k)
             {
-                double r_dist = sqrt((y[j] - y_center) * (y[j] - y_center) + (z[k] - y_center) * (z[k] - y_center));
-                radius[j][k] = r_dist;
-                theta_coord[j][k] = atan2(z[k] - y_center, y[j] - y_center);
+                double mag = sqrt(v[0][i][j][k] * v[0][i][j][k] + v[1][i][j][k] * v[1][i][j][k] + v[2][i][j][k] * v[2][i][j][k]);
+                if (mag > Q)
+                {
+                    x = i, y = j, z = k;
+                    Q = mag;
+                }
             }
         }
-        std::cout << "Grid initialized : nx = " << nx << "ny = " << ny << "nz = " << nz;
-        std::cout << "Grid spacing: dx=" << dx << " dy=" << dy << " dz =" << dz;
     }
-    
-    double findvmax(const std::vector< std::vector<std::vector<std::vector<double>>>>& v, const int N)
-    {
-        double Q = 0;
-        int x = 0;
-        int y = 0;
-        int z = 0;
-        for (int i = 0; i < N; ++i)
+    printf("maxspeed=%f at position (%d,%d,%d)\n", Q, x, y, z);
+    return Q;
+}
+void initialize_flow()
+{
+    // Initialize velocity and pressure fields
+    fill(u.begin(), u.end(), std::vector<std::vector<double>>(ny, std::vector<double>(nz, 0.0)));
+    fill(v.begin(), v.end(), std::vector<std::vector<double>>(ny + 1, std::vector<double>(nz, 0.0)));
+    fill(w.begin(), w.end(), std::vector<std::vector<double>>(ny, std::vector<double>(nz + 1, 0.0)));
+    fill(p.begin(), p.end(), std::vector<std::vector<double>>(ny, std::vector<double>(nz, 0.0)));
+
+    // Set inlet velocity profile (parabolic)
+    double inlet_velocity = 0.5;  // Reduced inlet velocity
+    for (size_t j = 0; j < ny; ++j)
+        for (size_t k = 0; k < nz; ++k)
         {
-            for (int j = 0; j < N; ++j)
+            if (radius[j][k] <= R && !sphere[0][j][k])
             {
-                for (int k = 0; k < N; ++k)
-                {
-                    double mag = sqrt(v[0][i][j][k] * v[0][i][j][k] + v[1][i][j][k] * v[1][i][j][k] + v[2][i][j][k] * v[2][i][j][k]);
-                    if (mag > Q)
-                    {
-                        x = i, y = j, z = k;
-                        Q = mag;
-                    }
-                }
+                u[0][j][k] = inlet_velocity * (1.0 - (radius[j][k] / R) * (radius[j][k] / R));
+            }
+            else
+            {
+                u[0][j][k] = 0;
             }
         }
-        printf("maxspeed=%f at position (%d,%d,%d)\n", Q, x, y, z);
-        return Q;
-    }
-    void initialize_flow()
-    {
-        // Initialize velocity and pressure fields
-        fill(u.begin(),u.end(), std::vector<std::vector<double>>(ny, std::vector<double>(nz, 0.0)));
-        fill(v.begin(), v.end(), std::vector<std::vector<double>>(ny, std::vector<double>(nz, 0.0)));
-        fill(w.begin(), w.end(), std::vector<std::vector<double>>(ny, std::vector<double>(nz, 0.0)));
-        fill(p.begin(), p.end(), std::vector<std::vector<double>>(ny, std::vector<double>(nz, 0.0)));
+    u_old = u;
+    v_old = v;
+    w_old = w;
+    p_old = p;
 
-            // Set inlet velocity profile (parabolic)
-        double inlet_velocity = 0.5;  // Reduced inlet velocity
-        for (size_t j=0; j<ny; ++j)
-            for (size_t k = 0; k < nz; ++k)
-            {
-                if (radius[j][k] <= R && !sphere[0][j][k])
-                {
-                    u[0][j][k] = inlet_velocity * (1.0 - (radius[j][k] / R) * (radius[j][k] / R));
-                }
-                else
-                {
-                    u[0][j][k] = 0;
-                }
-            }
-        u_old = u;
-        v_old = v;
-        w_old = w;
-        p_old = p;
+    std::cout << "Flow field initialized with parabolic inlet profile\n";
+    std::cout << "Inlet velocity: " << inlet_velocity << " Reynolds number : " << Re << "\n";
+}
 
-        std::cout << "Flow field initialized with parabolic inlet profile\n";
-        std::cout << "Inlet velocity: " << inlet_velocity << " Reynolds number : " << Re << "\n";
-    }
-                        
 void solve_momentum_equations()
 {
     // Local variables
@@ -162,12 +172,12 @@ void solve_momentum_equations()
     double dp_dx, dp_dy, dp_dz;
 
     // Solve u-momentum equation
-    for (size_t i = 1; i < nx - 1; ++i) {
+    for (size_t i = 1; i < nx; ++i) {
         for (size_t j = 1; j < ny - 1; ++j) {
             for (size_t k = 1; k < nz - 1; ++k) {
-                if (radius[j][k] <= R &&!sphere[i][j][k]) {  // Only solve inside tube
-                    // Convection terms (central differencing for stability)
-                    conv_x = u[i][j][k] * (u[i + 1][j][k] - u[i - 1][j][k]) / (2.0 * dx);
+                if (radius[j][k] <= R && !sphere[i][j][k]) {  // Only solve inside tube
+                    // Convection with an upwind
+                    conv_x = u[i][j][k] * (u[i][j][k] - u[i - 1][j][k]) / dx;
                     conv_y = v[i][j][k] * (u[i][j + 1][k] - u[i][j - 1][k]) / (2.0 * dy);
                     conv_z = w[i][j][k] * (u[i][j][k + 1] - u[i][j][k - 1]) / (2.0 * dz);
 
@@ -177,11 +187,10 @@ void solve_momentum_equations()
                     diff_z = nu * (u[i][j][k + 1] - 2.0 * u[i][j][k] + u[i][j][k - 1]) / (dz * dz);
 
                     // Pressure gradient
-                    dp_dx = (p[i + 1][j][k] - p[i - 1][j][k]) / (2.0 * dx * rho);
+                    dp_dx = (p[i][j][k] - p[i - 1][j][k]) / (dx * rho);
 
-                    // Update intermediate velocity with under-relaxation
-                    u_star[i][j][k] = u_old[i][j][k] + dt * (-conv_x - conv_y - conv_z + diff_x + diff_y + diff_z - dp_dx);
-                    u_star[i][j][k] = alpha * u_star[i][j][k] + (1.0 - alpha) * u[i][j][k];
+                    // Update 
+                    u[i][j][k] = u_old[i][j][k] + dt * (-conv_x - conv_y - conv_z + diff_x + diff_y + diff_z - dp_dx);
                 }
             }
         }
@@ -189,10 +198,10 @@ void solve_momentum_equations()
 
     // Solve v-momentum equation
     for (size_t i = 1; i < nx - 1; ++i) {
-        for (size_t j = 1; j < ny - 1; ++j) {
+        for (size_t j = 1; j < ny; ++j) {
             for (size_t k = 1; k < nz - 1; ++k) {
-                if (radius[j][k] <= R &&!sphere[i][j][k]) {
-                    // Convection terms (central differencing)
+                if (radius[j][k] <= R && !sphere[i][j][k]) {
+                    // Convection with an upwind
                     conv_x = u[i][j][k] * (v[i + 1][j][k] - v[i - 1][j][k]) / (2.0 * dx);
                     conv_y = v[i][j][k] * (v[i][j + 1][k] - v[i][j - 1][k]) / (2.0 * dy);
                     conv_z = w[i][j][k] * (v[i][j][k + 1] - v[i][j][k - 1]) / (2.0 * dz);
@@ -203,11 +212,10 @@ void solve_momentum_equations()
                     diff_z = nu * (v[i][j][k + 1] - 2.0 * v[i][j][k] + v[i][j][k - 1]) / (dz * dz);
 
                     // Pressure gradient
-                    dp_dy = (p[i][j + 1][k] - p[i][j - 1][k]) / (2.0 * dy * rho);
+                    dp_dy = (p[i][j][k] - p[i][j-1][k]) / (dy * rho); //upwinded?
 
-                    // Update intermediate velocity with under-relaxation
-                    v_star[i][j][k] = v_old[i][j][k] + dt * (-conv_x - conv_y - conv_z + diff_x + diff_y + diff_z - dp_dy);
-                    v_star[i][j][k] = alpha * v_star[i][j][k] + (1.0 - alpha) * v[i][j][k];
+                    // update 
+                    v[i][j][k] = v_old[i][j][k] + dt * (-conv_x -conv_y - conv_z + diff_x + diff_y + diff_z - dp_dy);
                 }
             }
         }
@@ -216,40 +224,36 @@ void solve_momentum_equations()
     // Solve w-momentum equation
     for (size_t i = 1; i < nx - 1; ++i) {
         for (size_t j = 1; j < ny - 1; ++j) {
-            for (size_t k = 1; k < nz - 1; ++k) {
-                if (radius[j][k] <= R &&!sphere[i][j][k]) {
-                    // Convection terms (central differencing)
+            for (size_t k = 1; k < nz; ++k) {
+                if (radius[j][k] <= R && !sphere[i][j][k]) {
+                    // Convection with an upwind
                     conv_x = u[i][j][k] * (w[i + 1][j][k] - w[i - 1][j][k]) / (2.0 * dx);
                     conv_y = v[i][j][k] * (w[i][j + 1][k] - w[i][j - 1][k]) / (2.0 * dy);
                     conv_z = w[i][j][k] * (w[i][j][k + 1] - w[i][j][k - 1]) / (2.0 * dz);
-
                     // Diffusion terms
                     diff_x = nu * (w[i + 1][j][k] - 2.0 * w[i][j][k] + w[i - 1][j][k]) / (dx * dx);
                     diff_y = nu * (w[i][j + 1][k] - 2.0 * w[i][j][k] + w[i][j - 1][k]) / (dy * dy);
                     diff_z = nu * (w[i][j][k + 1] - 2.0 * w[i][j][k] + w[i][j][k - 1]) / (dz * dz);
 
                     // Pressure gradient
-                    dp_dz = (p[i][j][k + 1] - p[i][j][k - 1]) / (2.0 * dz * rho);
+                    dp_dz = (p[i][j][k] - p[i][j][k-1]) / (dz * rho);
 
-                    // Update intermediate velocity with under-relaxation
-                    w_star[i][j][k] = w_old[i][j][k] + dt * (-conv_x - conv_y - conv_z + diff_x + diff_y + diff_z - dp_dz);
-                    w_star[i][j][k] = alpha * w_star[i][j][k] + (1.0 - alpha) * w[i][j][k];
+                    // update 
+                    w[i][j][k] = w_old[i][j][k] + dt * (-conv_x- conv_y -conv_z + diff_x + diff_y + diff_z - dp_dz);
                 }
             }
         }
     }
 }
 void solve_pressure_correction() {
-    double omega = 1.2;  // Reduced SOR relaxation factor
-
-    // Calculate Divergence of intermediate velocity field
-    for (size_t i = 1; i < nx - 1; ++i) {
-        for (size_t j = 1; j < ny - 1; ++j) {
-            for (size_t k = 1; k < nz - 1; ++k) {
+    // Calculate Divergence
+    for (size_t i = 0; i < nx; ++i) {
+        for (size_t j = 0; j < ny; ++j) {
+            for (size_t k = 0; k < nz; ++k) {
                 if (radius[j][k] <= R && !sphere[i][j][k]) {
-                    Div[i][j][k] = (u_star[i + 1][j][k] - u_star[i - 1][j][k]) / (2.0 * dx) +
-                        (v_star[i][j + 1][k] - v_star[i][j - 1][k]) / (2.0 * dy) +
-                        (w_star[i][j][k + 1] - w_star[i][j][k - 1]) / (2.0 * dz);
+                    Div[i][j][k] = (u[i + 1][j][k] - u[i][j][k]) / (dx) +
+                        (v[i][j + 1][k] - v[i][j][k]) / (dy) +
+                        (w[i][j][k + 1] - w[i][j][k]) / (dz);
                 }
                 else {
                     Div[i][j][k] = 0.0;
@@ -257,18 +261,19 @@ void solve_pressure_correction() {
             }
         }
     }
-
+    double omega = 1.5;
     // Solve pressure correction equation using SOR
     for (size_t sor_iter = 1; sor_iter <= 10; ++sor_iter) {  // Fewer iterations
         for (size_t i = 1; i < nx - 1; ++i) {
             for (size_t j = 1; j < ny - 1; ++j) {
                 for (size_t k = 1; k < nz - 1; ++k) {
                     if (radius[j][k] <= R && !sphere[i][j][k]) {
-                        double c = 2 * (1.0 / (dx * dx) + 1.0 / (dy * dy) + 1.0 / (dz * dz));
-                        double p_new = (1.0 / c) * ((p_prime[i + 1][j][k] + p_prime[i - 1][j][k]) / dx / dx +
-                            (p_prime[i][j + 1][k] + p_prime[i][j - 1][k]) / dy / dy +
-                            (p_prime[i][j][k + 1] + p_prime[i][j][k - 1]) / dz / dz -
-                            Div[i][j][k]);
+                        double c = 2 * (1.0 / (dx * dx) + 1.0 / (dy * dy) + 1.0 / (dz *dz));
+                        double p_new = (1.0 / c) * ((p_prime[i + 1][j][k] + p_prime[i - 1][j][k])/dx/dx +
+                            (p_prime[i][j + 1][k] + p_prime[i][j - 1][k])/dy/dy +
+                            (p_prime[i][j][k + 1] + p_prime[i][j][k - 1])/dz/dz -
+                            Div[i][j][k]); 
+
                         p_prime[i][j][k] = p_prime[i][j][k] + omega * (p_new - p_prime[i][j][k]);
                     }
                 }
@@ -278,25 +283,41 @@ void solve_pressure_correction() {
 }
 
 void correct_pressure_velocity() {
-    // Correct pressure with under-relaxation
-    for (size_t i = 1; i < nx - 1; ++i) {
-        for (size_t j = 1; j < ny - 1; ++j) {
-            for (size_t k = 1; k < nz - 1; ++k) {
-                if (radius[j][k] <= R&& !sphere[i][j][k]) {
-                    p[i][j][k] = p[i][j][k] + Beta * p_prime[i][j][k];
+    // Correct pressure
+    for (size_t i = 0; i < nx; ++i) {
+        for (size_t j = 0; j < ny; ++j) {
+            for (size_t k = 0; k < nz; ++k) {
+                if (radius[j][k] <= R && !sphere[i][j][k]) {
+                    p[i][j][k] = p[i][j][k] + p_prime[i][j][k];
                 }
             }
         }
     }
 
     // Correct velocities
-    for (size_t i = 1; i < nx - 1; ++i) {
-        for (size_t j = 1; j < ny - 1; ++j) {
-            for (size_t k = 1; k < nz - 1; ++k) {
+    for (size_t i = 1; i < nx; ++i) {
+        for (size_t j = 0; j < ny; ++j) {
+            for (size_t k = 0; k < nz; ++k) {
                 if (radius[j][k] <= R && !sphere[i][j][k]) {
-                    u[i][j][k] = u_star[i][j][k] - dt * (p_prime[i + 1][j][k] - p_prime[i - 1][j][k]) / (2.0 * dx * rho);
-                    v[i][j][k] = v_star[i][j][k] - dt * (p_prime[i][j + 1][k] - p_prime[i][j - 1][k]) / (2.0 * dy * rho);
-                    w[i][j][k] = w_star[i][j][k] - dt * (p_prime[i][j][k + 1] - p_prime[i][j][k - 1]) / (2.0 * dz * rho);
+                    u[i][j][k] = u[i][j][k] - dt * (p_prime[i][j][k] - p_prime[i - 1][j][k]) / (dx * rho);
+                }
+            }
+        }
+    }
+    for (size_t i = 0; i < nx; ++i) {
+        for (size_t j = 1; j < ny; ++j) {
+            for (size_t k = 0; k < nz; ++k) {
+                if (radius[j][k] <= R && !sphere[i][j][k]) {
+                    v[i][j][k] = v[i][j][k] - dt * (p_prime[i][j][k] - p_prime[i][j - 1][k]) / (dy * rho);
+                }
+            }
+        }
+    }
+    for (size_t i = 0; i < nx; ++i) {
+        for (size_t j = 0; j < ny; ++j) {
+            for (size_t k = 1; k < nz; ++k) {
+                if (radius[j][k] <= R && !sphere[i][j][k]) {
+                    w[i][j][k] = w[i][j][k] - dt * (p_prime[i][j][k] - p_prime[i][j][k - 1]) / (dz * rho);
                 }
             }
         }
@@ -306,9 +327,9 @@ void check_convergence(double& max_Div, double& max_p_change) {
     max_Div = 0.0;
     max_p_change = 0.0;
 
-    for (size_t i = 1; i < nx - 1; ++i) {
-        for (size_t j = 1; j < ny - 1; ++j) {
-            for (size_t k = 1; k < nz - 1; ++k) {
+    for (size_t i = 0; i < nx; ++i) {
+        for (size_t j = 0; j < ny; ++j) {
+            for (size_t k = 0; k < nz; ++k) {
                 if (radius[j][k] <= R && !sphere[i][j][k]) {
                     max_Div = std::max(max_Div, std::abs(Div[i][j][k]));
                     max_p_change = std::max(max_p_change, std::abs(p_prime[i][j][k]));
@@ -339,26 +360,41 @@ void apply_boundary_conditions() {
     // Outlet boundary (zero gradient)
     for (size_t j = 0; j < ny; ++j) {
         for (size_t k = 0; k < nz; ++k) {
-            u[nx-1][j][k] = u[nx - 2][j][k];
-            v[nx-1][j][k] = v[nx - 2][j][k];
-            w[nx-1][j][k] = w[nx - 2][j][k];
-            p[nx-1][j][k] = p[nx - 2][j][k];
+            u[nx][j][k] = u[nx - 1][j][k];
+            v[nx - 1][j+1][k] = v[nx - 1][j][k];
+            w[nx - 1][j][k+1] = w[nx - 1][j][k];
+            p[nx - 1][j][k] = 0.0;
         }
     }
 
     // Wall boundary (no-slip)
-    for (size_t i = 0; i < nx; ++i) {
+    for (size_t i = 0; i < nx+1; ++i) {
         for (size_t j = 0; j < ny; ++j) {
             for (size_t k = 0; k < nz; ++k) {
-                if (radius[j][k] > R && !sphere[i][j][k]) {
+                if (radius[j][k] > R  || (sphere[std::min(i, nx - 1)][j][k]&& !sphere2[std::min(i, nx - 1)][j][k])) {
                     u[i][j][k] = 0.0;
+                }
+            }
+        }
+    }
+    for (size_t i = 0; i < nx; ++i) {
+        for (size_t j = 0; j < ny+1; ++j) {
+            for (size_t k = 0; k < nz; ++k) {
+                if (radius[std::min(j, ny - 1)][k] > R || (sphere[i][std::min(j, ny - 1)][k] && !sphere2[i][std::min(j, ny - 1)][k])) {
                     v[i][j][k] = 0.0;
+                }
+            }
+        }
+    }
+    for (size_t i = 0; i < nx; ++i) {
+        for (size_t j = 0; j < ny; ++j) {
+            for (size_t k = 0; k < nz+1; ++k) {
+                if (radius[j][std::min(k, nz - 1)] > R ||(sphere[i][j][std::min(k, nz - 1)] && !sphere2[i][j][std::min(k, nz - 1)])) {
                     w[i][j][k] = 0.0;
                 }
             }
         }
     }
-
     // Pressure boundary conditions
     //inlet
     for (size_t j = 0; j < ny; ++j)
@@ -366,17 +402,10 @@ void apply_boundary_conditions() {
         for (size_t k = 0; k < nz; ++k)
         {
             p[0][j][k] = p[1][j][k];
+            //maybe make the inlet ghost cell pressure 0?
         }
     }
-    //outlet
-    for (size_t j = 0; j < ny; ++j)
-    {
-        for (size_t k = 0; k < nz; ++k)
-        {
-            p[nx-1][j][k] = 0.0;
-        }
-    }
- }
+}
 void output_results(size_t time_step, double time) {
 
     std::string filename = "stable_piso_velocity_" + std::to_string(time_step) + ".vtk";
@@ -403,8 +432,9 @@ void output_results(size_t time_step, double time) {
     for (size_t k = 0; k < nz; ++k) {
         for (size_t j = 0; j < ny; ++j) {
             for (size_t i = 0; i < nx; ++i) {
-                file << std::fixed << std::setprecision(6) << u[i][j][k] << " "
-                    << v[i][j][k] << " " << w[i][j][k] << "\n";
+
+                file << std::fixed << std::setprecision(6) << (u[i][j][k] + u[i+1][j][k])/2 << " "
+                    << (v[i][j][k] + v[i][j+1][k])/2 << " " << (w[i][j][k] + w[i][j][k+1])/2 << "\n";
             }
         }
     }
@@ -420,7 +450,7 @@ void output_results(size_t time_step, double time) {
     }
 
     file.close();
-}    
+}
 void output_final_results() {
     // Local variables
     size_t count_points = 0;
@@ -444,7 +474,10 @@ void output_final_results() {
         for (size_t j = 0; j < ny; ++j) {
             for (size_t k = 0; k < nz; ++k) {
                 if (radius[j][k] <= R && !sphere[i][j][k]) {
-                    vel_magnitude = std::sqrt(u[i][j][k] * u[i][j][k] + v[i][j][k] * v[i][j][k] + w[i][j][k] * w[i][j][k]);
+                    double u_c = (u[i][j][k] + u[i + 1][j][k]) / 2;
+                    double v_c = (v[i][j][k] + v[i][j + 1][k]) / 2;
+                    double w_c = (w[i][j][k] + w[i][j][k + 1]) / 2;
+                    vel_magnitude = std::sqrt(u_c*u_c +v_c*v_c+w_c*w_c);
                     max_velocity = std::max(max_velocity, vel_magnitude);
                     avg_velocity += vel_magnitude;
                     max_pressure = std::max(max_pressure, p[i][j][k]);
@@ -452,7 +485,7 @@ void output_final_results() {
                     count_points++;
 
                     if (i == nx / 2) {  // Calculate flow rate at middle
-                        total_flow_rate += u[i][j][k] * dy * dz;
+                        total_flow_rate += u_c * dy * dz;
                     }
                 }
             }
@@ -495,8 +528,7 @@ int main()
     // Initialize flow field
     initialize_flow();
 
-    vector angv, rcm, ucm;
-    double mass=1;
+    vector angv, rcm(cx,cy,cz), ucm;
     for (int time_step = 1; time_step <= max_iter; ++time_step) {
         double time = static_cast<double>(time_step) * dt;
 
@@ -517,7 +549,7 @@ int main()
 
             // Step 2: Solve pressure correction equation
             solve_pressure_correction();
-
+            
             // Step 3: Correct pressure and velocities
             correct_pressure_velocity();
 
@@ -543,19 +575,20 @@ int main()
         }
 
         // Check for instability
-        if (max_Div > 10.0 || max_p_change > 10.0) {
+        /*if (max_Div > 10.0 || max_p_change > 10.0) {
             std::cout << "WARNING: Simulation becoming unstable" << std::endl;
             std::cout << "Max Div: " << max_Div << " Max P change: " << max_p_change << std::endl;
             std::cout << "Stopping at time step: " << time_step << std::endl;
             break;
-        }
+        }*/
         //insert sphere code here
-        vector *a = forceandtorque(sphere2, u, v, w, p, nx, ny, nz, dx, dy, dz, cx, cy, cz, R,r);
-        vector F = a[0];
-        vector T = a[1];
+        auto start = std::chrono::high_resolution_clock::now();
+        
+        vector F, T;
+        std::tie(F,T)= forceandtorquestag(sphere, u, v, w, p, nx, ny, nz, dx, dy, dz, cx, cy, cz, R, r);
         angv = angv + T * dt / (2 * mass * r * r / 5);
         ucm = ucm + F * dt / mass;
-        rcm = rcm + ucm * dt + F * dt*dt / (2 * mass);
+        rcm = rcm + ucm * dt + F * dt * dt / (2 * mass);
         cx = rcm.X(), cy = rcm.Y(), cz = rcm.Z();
         sphere = filledmidpointsphere(cx, cy, cz, dx, dy, dz, nx, ny, nz, r, R);
         sphere2 = emptiedmidpointsphere(cx, cy, cz, dx, dy, dz, nx, ny, nz, r, R);
@@ -563,17 +596,28 @@ int main()
         {
             for (int j = 0; j < ny; ++j)
             {
-            	for (int k = 0; k < nz; ++k)
-            	{
+                for (int k = 0; k < nz; ++k)
+                {
                     if (sphere2[i][j][k])
                     {
                         vector position = { i * dx,-R + (j)*dy, -R + (k)*dz };
                         vector surfacevelocity = ucm + angv % position;
                         u[i][j][k] = surfacevelocity.X(), v[i][j][k] = surfacevelocity.Y(), w[i][j][k] = surfacevelocity.Z();
                     }
-            	}
+                }
             }
         }
+
+        // Stop the timer
+        auto end = std::chrono::high_resolution_clock::now();
+
+        // Calculate the duration
+        auto duration = end - start;
+
+        // Convert and display the duration in microseconds
+        auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(duration).count();
+        std::cout << "Execution time: " << microseconds << " microseconds" << std::endl;
+        
     }
 
     // Final output
@@ -583,3 +627,13 @@ int main()
 
     return 0;
 }
+
+
+/* divergence()
+* pressure correct
+* velocity correct
+* converged?
+* apply boundary conditions
+* output results 
+* c
+*/

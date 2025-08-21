@@ -34,6 +34,13 @@ public:
 		column2 = v2;
 		column3 = v3;
 	}
+	tensor(double a)
+	{
+		vector v1(a,0,0), v2(0,a,0), v3(0,0,a);
+		column1 = v1;
+		column2 = v2;
+		column3 = v3;
+	}
 	tensor& operator=(const tensor& T)
 	{
 		if (this != &T)

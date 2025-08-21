@@ -19,15 +19,14 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="cubyboxy.cpp" />
-    <ClCompile Include="utilities.cpp" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="utilities.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="navierdraft.cpp" />
     <None Include="navier_stokes_3d_piso_stable.f90" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="midpointsphere.cpp" />
+    <ClCompile Include="navierdraft.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
