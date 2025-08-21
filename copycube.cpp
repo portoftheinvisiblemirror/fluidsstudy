@@ -417,6 +417,9 @@ vector *forceandtorque(std::vector<std::vector<std::vector<bool>>> sphere, std::
 			}
 	//determine the force and torque 
 	vector answers[2]={ force(x0, y0, z0, dx, dy, dz, nx, ny, nz, longitudes, latitudes, radius, spheremesh, sphere, stresses, R), torque(x0, y0, z0, dx, dy, dz, nx, ny, nz, longitudes, latitudes, radius, spheremesh, sphere, stresses, R) };
+
+	free(spheremesh);
+	free(stresses);
 	return answers;
 }
 std::tuple<vector, vector> forceandtorquestag(std::vector<std::vector<std::vector<bool>>> sphere, std::vector<std::vector<std::vector<double>>> u, std::vector<std::vector<std::vector<double>>> v, std::vector<std::vector<std::vector<double>>> w, std::vector<std::vector<std::vector<double>>> P, int nx, int ny, int nz, double dx, double dy, double dz, double x0, double y0, double z0, double R, double radius)
@@ -450,5 +453,7 @@ std::tuple<vector, vector> forceandtorquestag(std::vector<std::vector<std::vecto
 	//determine the force and torque
 	vector Force = force(x0, y0, z0, dx, dy, dz, nx, ny, nz, longitudes, latitudes, radius, spheremesh, sphere, stresses, R);
 	vector Torque = torque(x0, y0, z0, dx, dy, dz, nx, ny, nz, longitudes, latitudes, radius, spheremesh, sphere, stresses, R);
+	free(spheremesh);
+	free(stresses);
 	return std::make_tuple(Force, Torque);
 }
