@@ -53,13 +53,13 @@ void allocate_arrays()
     u.resize(nx + 1, std::vector<std::vector<double>>(ny, std::vector<double>(nz, 0.0)));
     v.resize(nx, std::vector<std::vector<double>>(ny + 1, std::vector<double>(nz, 0.0)));
     w.resize(nx, std::vector<std::vector<double>>(ny, std::vector<double>(nz + 1, 0.0)));
-    u_old.resize(nx + 1, std::vector<std::vector<double>>(ny, std::vector<double>(nz, 0.0)));
-    v_old.resize(nx, std::vector<std::vector<double>>(ny + 1, std::vector<double>(nz, 0.0)));
-    w_old.resize(nx, std::vector<std::vector<double>>(ny, std::vector<double>(nz + 1, 0.0)));
+    u_old = u;
+    v_old = v;
+    w_old = w;
     p.resize(nx, std::vector<std::vector<double>>(ny, std::vector<double>(nz, 0.0)));
-    p_old.resize(nx, std::vector<std::vector<double>>(ny, std::vector<double>(nz, 0.0)));
-    p_prime.resize(nx, std::vector<std::vector<double>>(ny, std::vector<double>(nz, 0.0)));
-    Div.resize(nx, std::vector<std::vector<double>>(ny, std::vector<double>(nz, 0.0)));
+    p_old = p;
+    p_prime = p;
+    Div = p;
 
     x.resize(nx, 0.0);
     y.resize(ny, 0.0);
@@ -96,13 +96,15 @@ void initialize_grid()
     // Calculate cylindrical coordinates
     double x_center = 0.0;
     double y_center = 0.0;
+    double z_center = 0.0;
+
     for (size_t j = 0; j < ny; ++j)
     {
         for (size_t k = 0; k < nz; ++k)
         {
-            double r_dist = sqrt((y[j] - y_center) * (y[j] - y_center) + (z[k] - y_center) * (z[k] - y_center));
+            double r_dist = sqrt((y[j] - y_center) * (y[j] - y_center) + (z[k] - z_center) * (z[k] - z_center));
             radius[j][k] = r_dist;
-            theta_coord[j][k] = atan2(z[k] - y_center, y[j] - y_center);
+            theta_coord[j][k] = atan2(z[k] - z_center, y[j] - y_center);
         }
     }
     std::cout << "Staggered Grid initialized : nx = " << nx << "ny = " << ny << "nz = " << nz;
@@ -401,7 +403,8 @@ void apply_boundary_conditions() {
     {
         for (size_t k = 0; k < nz; ++k)
         {
-            p[0][j][k] = p[1][j][k];
+            p[0][j][k] = 0.;
+            //p[0][j][k] = p[1][j][k];
             //maybe make the inlet ghost cell pressure 0?
         }
     }
