@@ -170,7 +170,19 @@ std::vector<std::vector<std::vector<bool>>> emptiedmidpointsphere(const double x
 		//fill in
 		emptiedmidpointcircle(y0, z0, dy, dz, ny, nz, halfr, halflow, sphere[i], R);
 	}
-	return sphere;
+	/*for (int i = xlow; i < xhigh+1; ++i)
+			{
+				for (int j = 0; j< ny; ++j)
+				{
+					for (int k = 0; k<nz; ++k)
+					{
+						std::cout << sphere[i][j][k] << " ";
+					}
+					std::cout << "\n";
+				}
+				std::cout << "\n";
+			}
+	*/return sphere;
 }
 
 

@@ -21,7 +21,7 @@ typedef double real;
 //constants
 size_t nx = 128, ny = 64, nz = 64;   // Smaller grid for testing
 size_t max_iter = 6000;             // Maximum time steps
-size_t n_correctors = 2;            // Fewer correctors
+size_t n_correctors = 4;            // Fewer correctors
 real dt = 1e-5;          // Much smaller time step
 real Re = 50.0;                  // Lower Reynolds number
 real nu = 1.0 / Re;                 // Kinematic viscosity
@@ -571,19 +571,34 @@ int main()
 
         // Apply boundary conditions
         apply_boundary_conditions();
-
+        for (int i = 0; i < nx; ++i)
+        {
+            for (int j = 0; j < ny; ++j)
+            {
+                for (int k = 0; k < nz; ++k)
+                {
+                    if (sphere2[i][j][k])
+                    {
+                        vector position = { i * dx,-R + (j)*dy, -R + (k)*dz };
+                        vector surfacevelocity = ucm + angv % position;
+                        u[i][j][k] = surfacevelocity.X(), v[i][j][k] = surfacevelocity.Y(), w[i][j][k] = surfacevelocity.Z();
+                    }
+                }
+            }
+        }
         // Output results periodically
         if (time_step % 50 == 0) {
             output_results(time_step, time);
         }
 
         // Check for instability
-        /*if (max_Div > 10.0 || max_p_change > 10.0) {
+        if (max_Div > 20.0 || max_p_change > 10.0) {
             std::cout << "WARNING: Simulation becoming unstable" << std::endl;
             std::cout << "Max Div: " << max_Div << " Max P change: " << max_p_change << std::endl;
             std::cout << "Stopping at time step: " << time_step << std::endl;
+            output_results(time_step, time);
             break;
-        }*/
+        }
         //insert sphere code here
         auto start = std::chrono::high_resolution_clock::now();
         

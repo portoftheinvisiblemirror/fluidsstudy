@@ -537,6 +537,21 @@ int main()
         // Apply boundary conditions
         apply_boundary_conditions();
 
+        for (int i = 0; i < nx; ++i)
+        {
+            for (int j = 0; j < ny; ++j)
+            {
+                for (int k = 0; k < nz; ++k)
+                {
+                    if (sphere2[i][j][k])
+                    {
+                        vector position = { i * dx,-R + (j)*dy, -R + (k)*dz };
+                        vector surfacevelocity = ucm + angv % position;
+                        u[i][j][k] = surfacevelocity.X(), v[i][j][k] = surfacevelocity.Y(), w[i][j][k] = surfacevelocity.Z();
+                    }
+                }
+            }
+        }
         // Output results periodically
         if (time_step % 50 == 0) {
             output_results(time_step, time);

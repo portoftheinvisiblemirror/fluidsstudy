@@ -15,4 +15,6 @@ double*** allocate3d(const unsigned int latitudes, const unsigned int longitudes
 tensor*** allocate3dt(const unsigned int latitudes, const unsigned int longitudes, const unsigned int narea);
 double**** allocate4d(const unsigned int nc, const unsigned int nx, const unsigned int ny, const unsigned int nz);
 vector*** allocate3dv(const unsigned int nc, const unsigned int nx, const unsigned int ny);
+void deletia(tensor***& spheremesh, const unsigned int latitudes, const unsigned int longitudes, const unsigned int narea);
+void deletia(double***& spheremesh, const unsigned int latitudes, const unsigned int longitudes, const unsigned int narea);
 #endif

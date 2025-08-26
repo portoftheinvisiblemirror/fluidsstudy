@@ -186,3 +186,25 @@ vector*** allocate3dv(const unsigned int nc, const unsigned int nx, const unsign
 #endif
 	return ptr;
 }
+void deletia(tensor***& spheremesh, const unsigned int latitudes, const unsigned int longitudes, const unsigned int narea)
+{
+	int x = latitudes, y = longitudes, z = narea;
+	for (int i = 0; i < x; i++) {
+		for (int j = 0; j < y; j++) {
+			delete [] spheremesh[i][j];
+		}
+		delete [] spheremesh[i];
+	}
+	delete [] spheremesh;
+}
+void deletia(double***& spheremesh, const unsigned int latitudes, const unsigned int longitudes, const unsigned int narea)
+{
+	int x = latitudes, y = longitudes, z = narea;
+	for (int i = 0; i < x; i++) {
+		for (int j = 0; j < y; j++) {
+			delete[] spheremesh[i][j];
+		}
+		delete[] spheremesh[i];
+	}
+	delete[] spheremesh;
+}

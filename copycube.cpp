@@ -16,9 +16,9 @@
 #include "tensor.hpp"
 #include "vtk.hpp"
 #include <tuple>
-
+#include <memory>
 double*** compute_spheremesh(const double radius, const unsigned int latitudes, const unsigned int longitudes, double*** spheremesh);
-
+int elements=0;
 double angleof(double x, double y)
 {
 	double angle;
@@ -58,6 +58,7 @@ double*** compute_spheremesh(const double radius, const unsigned int latitudes, 
 	//generate sphere mesh
 	double*** spheremesh = allocate3d(latitudes, longitudes, 4);
 	double latitude = M_PI / (2 * latitudes); //note: 90 degrees north will be called 0 radians "latitude" here, and 90 degrees south will be called pi radians "latitude"
+	//double area = 0;
 	for (unsigned int i = 0; i < latitudes; i++)
 	{
 		double z = radius * cos(latitude); //under the normal definition of latitude, this would be sine. But our "latitude" in the program switchees cosines and sines
@@ -71,10 +72,12 @@ double*** compute_spheremesh(const double radius, const unsigned int latitudes, 
 			spheremesh[i][j][2] = z;
 			spheremesh[i][j][3] = a;
 			angle += 2 * M_PI / longitudes;
+			//area += a;
 		}
 		latitude += M_PI / (latitudes);
 		angle = 0;
 	}
+	//std::cout << "area: " << area << "\n";
 	return spheremesh;
 }
 static double areal(double radius, double xlow, double xup, double ylow, double yup, double zlow, double zup, unsigned int latitudes, unsigned int longitudes, double*** spheremesh, double sx, double sy, double sz, tensor*** st, const double dx, const double dy, const double dz, int x, int y, int z)
@@ -114,9 +117,10 @@ static double areal(double radius, double xlow, double xup, double ylow, double 
 		for (unsigned int i = uplat; i < lowlat; i++)   //for loop starts at latitude corresponding to zup -> latitude corresponding to zlow, since the latitudes start at the top of the sphere
 		{
 			for (unsigned int j = lowlong; j < uplong; j++) //start at the lowest longitude and go to the highest longitude
-				if (spheremesh[i][j][0] >= xlow && spheremesh[i][j][0] <= xup && spheremesh[i][j][1] >= ylow && spheremesh[i][j][1] <= yup && spheremesh[i][j][2] >= zlow && spheremesh[i][j][2] <= zup) //check if the point is inside the box. If yes, add the area
+				if (spheremesh[i][j][0] >= xlow && spheremesh[i][j][0] < xup && spheremesh[i][j][1] >= ylow && spheremesh[i][j][1] < yup && spheremesh[i][j][2] >= zlow && spheremesh[i][j][2] < zup) //check if the point is inside the box. If yes, add the area
 				{
 					area +=spheremesh[i][j][3];
+					++elements;
 				}
 		}
 	}
@@ -131,14 +135,16 @@ static double areal(double radius, double xlow, double xup, double ylow, double 
 		for (unsigned int i = uplat; i < lowlat; i++)   //for loop starts at latitude corresponding to zup -> latitude corresponding to zlow, since the latitudes start at the top of the sphere
 		{
 			for (unsigned int j = 0; j < lowlong; j++) //start from 0 degrees, and end one above the lowest longitude
-				if (spheremesh[i][j][0] >= xlow && spheremesh[i][j][0] <= xup && spheremesh[i][j][1] >= ylow && spheremesh[i][j][1] <= yup && spheremesh[i][j][2] >= zlow && spheremesh[i][j][2] <= zup) //check if the point is inside the box. If yes, add the area
+				if (spheremesh[i][j][0] >= xlow && spheremesh[i][j][0] < xup && spheremesh[i][j][1] >= ylow && spheremesh[i][j][1] < yup && spheremesh[i][j][2] >= zlow && spheremesh[i][j][2] < zup) //check if the point is inside the box. If yes, add the area
 				{
 					area += spheremesh[i][j][3];
+					++elements;
 				}
 			for (unsigned int j = uplong; j < latitudes; j++)
-				if (spheremesh[i][j][0] >= xlow && spheremesh[i][j][0] <= xup && spheremesh[i][j][1] >= ylow && spheremesh[i][j][1] <= yup && spheremesh[i][j][2] >= zlow && spheremesh[i][j][2] <= zup) //check if the point is inside the box. If yes, add the area
+				if (spheremesh[i][j][0] >= xlow && spheremesh[i][j][0] < xup && spheremesh[i][j][1] >= ylow && spheremesh[i][j][1] < yup && spheremesh[i][j][2] >= zlow && spheremesh[i][j][2] < zup) //check if the point is inside the box. If yes, add the area
 				{
 					area += spheremesh[i][j][3];
+					++elements;
 				}
 		}
 	}
@@ -182,7 +188,7 @@ static vector forcel(double radius, double xlow, double xup, double ylow, double
 		for (unsigned int i = uplat; i < lowlat; i++)   //for loop starts at latitude corresponding to zup -> latitude corresponding to zlow, since the latitudes start at the top of the sphere
 		{
 			for (unsigned int j = lowlong; j < uplong; j++) //start at the lowest longitude and go to the highest longitude
-				if (spheremesh[i][j][0] >= xlow && spheremesh[i][j][0] <= xup && spheremesh[i][j][1] >= ylow && spheremesh[i][j][1] <= yup && spheremesh[i][j][2] >= zlow && spheremesh[i][j][2] <= zup) //check if the point is inside the box. If yes, add the area
+				if (spheremesh[i][j][0] >= xlow && spheremesh[i][j][0] < xup && spheremesh[i][j][1] >= ylow && spheremesh[i][j][1] < yup && spheremesh[i][j][2] >= zlow && spheremesh[i][j][2] < zup) //check if the point is inside the box. If yes, add the area
 				{
 					vector r(spheremesh[i][j][0], spheremesh[i][j][1], spheremesh[i][j][2]);
 					force = force + (st[x][y][z]) * r * spheremesh[i][j][3] / radius;
@@ -200,13 +206,13 @@ static vector forcel(double radius, double xlow, double xup, double ylow, double
 		for (unsigned int i = uplat; i < lowlat; i++)   //for loop starts at latitude corresponding to zup -> latitude corresponding to zlow, since the latitudes start at the top of the sphere
 		{
 			for (unsigned int j = 0; j < lowlong; j++) //start from 0 degrees, and end one above the lowest longitude
-				if (spheremesh[i][j][0] >= xlow && spheremesh[i][j][0] <= xup && spheremesh[i][j][1] >= ylow && spheremesh[i][j][1] <= yup && spheremesh[i][j][2] >= zlow && spheremesh[i][j][2] <= zup) //check if the point is inside the box. If yes, add the area
+				if (spheremesh[i][j][0] >= xlow && spheremesh[i][j][0] < xup && spheremesh[i][j][1] >= ylow && spheremesh[i][j][1] < yup && spheremesh[i][j][2] >= zlow && spheremesh[i][j][2] < zup) //check if the point is inside the box. If yes, add the area
 				{
 					vector r(spheremesh[i][j][0], spheremesh[i][j][1], spheremesh[i][j][2]);
 					force = force + (st[x][y][z]) * r * spheremesh[i][j][3] / radius;
 				}
 			for (unsigned int j = uplong; j < latitudes; j++)
-				if (spheremesh[i][j][0] >= xlow && spheremesh[i][j][0] <= xup && spheremesh[i][j][1] >= ylow && spheremesh[i][j][1] <= yup && spheremesh[i][j][2] >= zlow && spheremesh[i][j][2] <= zup) //check if the point is inside the box. If yes, add the area
+				if (spheremesh[i][j][0] >= xlow && spheremesh[i][j][0] < xup && spheremesh[i][j][1] >= ylow && spheremesh[i][j][1] < yup && spheremesh[i][j][2] >= zlow && spheremesh[i][j][2] < zup) //check if the point is inside the box. If yes, add the area
 				{
 					vector r(spheremesh[i][j][0], spheremesh[i][j][1], spheremesh[i][j][2]);
 					force = force + (st[x][y][z]) * r * spheremesh[i][j][3] / radius;
@@ -262,7 +268,7 @@ static vector torquel(double radius, double xlow, double xup, double ylow, doubl
 		for (unsigned int i = uplat; i < lowlat; i++)   //for loop starts at latitude corresponding to zup -> latitude corresponding to zlow, since the latitudes start at the top of the sphere
 		{
 			for (unsigned int j = lowlong; j < uplong; j++) //start at the lowest longitude and go to the highest longitude
-				if (spheremesh[i][j][0] >= xlow && spheremesh[i][j][0] <= xup && spheremesh[i][j][1] >= ylow && spheremesh[i][j][1] <= yup && spheremesh[i][j][2] >= zlow && spheremesh[i][j][2] <= zup) //check if the point is inside the box. If yes, add the area
+				if (spheremesh[i][j][0] >= xlow && spheremesh[i][j][0] < xup && spheremesh[i][j][1] >= ylow && spheremesh[i][j][1] < yup && spheremesh[i][j][2] >= zlow && spheremesh[i][j][2] < zup) //check if the point is inside the box. If yes, add the area
 				{
 					vector r(spheremesh[i][j][0] + sx, spheremesh[i][j][1] + sy, spheremesh[i][j][2] + sz);
 					vector n(spheremesh[i][j][0], spheremesh[i][j][1], spheremesh[i][j][2]);
@@ -282,7 +288,7 @@ static vector torquel(double radius, double xlow, double xup, double ylow, doubl
 		for (unsigned int i = uplat; i < lowlat; i++)   //for loop starts at latitude corresponding to zup -> latitude corresponding to zlow, since the latitudes start at the top of the sphere
 		{
 			for (unsigned int j = 0; j < lowlong; j++) //start from 0 degrees, and end one above the lowest longitude
-				if (spheremesh[i][j][0] >= xlow && spheremesh[i][j][0] <= xup && spheremesh[i][j][1] >= ylow && spheremesh[i][j][1] <= yup && spheremesh[i][j][2] >= zlow && spheremesh[i][j][2] <= zup) //check if the point is inside the box. If yes, add the area
+				if (spheremesh[i][j][0] >= xlow && spheremesh[i][j][0] < xup && spheremesh[i][j][1] >= ylow && spheremesh[i][j][1] < yup && spheremesh[i][j][2] >= zlow && spheremesh[i][j][2] < zup) //check if the point is inside the box. If yes, add the area
 				{
 					vector r(spheremesh[i][j][0] + sx, spheremesh[i][j][1] + sy, spheremesh[i][j][2] + sz);
 					vector n(spheremesh[i][j][0], spheremesh[i][j][1], spheremesh[i][j][2]);
@@ -290,7 +296,7 @@ static vector torquel(double radius, double xlow, double xup, double ylow, doubl
 					torque = torque + r % ((st[x][y][z]) * n) * spheremesh[i][j][3];
 				}
 			for (unsigned int j = uplong; j < latitudes; j++)
-				if (spheremesh[i][j][0] >= xlow && spheremesh[i][j][0] <= xup && spheremesh[i][j][1] >= ylow && spheremesh[i][j][1] <= yup && spheremesh[i][j][2] >= zlow && spheremesh[i][j][2] <= zup) //check if the point is inside the box. If yes, add the area
+				if (spheremesh[i][j][0] >= xlow && spheremesh[i][j][0] < xup && spheremesh[i][j][1] >= ylow && spheremesh[i][j][1] < yup && spheremesh[i][j][2] >= zlow && spheremesh[i][j][2] < zup) //check if the point is inside the box. If yes, add the area
 				{
 					vector r(spheremesh[i][j][0] + sx, spheremesh[i][j][1] + sy, spheremesh[i][j][2] + sz);
 					vector n(spheremesh[i][j][0], spheremesh[i][j][1], spheremesh[i][j][2]);
@@ -333,7 +339,7 @@ vector force(const double x0, const double y0, const double z0, const double dx,
 			{
 				if (sphere[i][j][k])
 				{
-					double a = i * dx, b = i * (1 + dx), c = j * dy - R, d = (j + 1) * dy - R, e = k * dz - R, f = (k + 1) * dz - R;
+					double a = i * dx, b = (i+1) *  dx, c = j * dy - R, d = (j + 1) * dy - R, e = k * dz - R, f = (k + 1) * dz - R;
 					sum = sum + forcel(radius, a, b, c, d, e, f, latitudes, longitudes, spheremesh, x0, y0, z0, st, dx, dy, dz, i, j, k);
 				}
 			}
@@ -360,7 +366,7 @@ vector torque(const double x0, const double y0, const double z0, const double dx
 	{
 				if (sphere[i][j][k])
 				{
-					double a = i * dx, b = i * (1 + dx), c = j * dy - R, d = (j + 1) * dy - R, e = k * dz - R, f = (k + 1) * dz - R;
+					double a = i * dx, b = (i+1) * dx, c = j * dy - R, d = (j + 1) * dy - R, e = k * dz - R, f = (k + 1) * dz - R;
 					sum = sum + torquel(radius, a, b, c, d, e, f, latitudes, longitudes, spheremesh, x0, y0, z0, st, dx, dy, dz, i, j, k);
 				}
 	}
@@ -387,10 +393,10 @@ double area(const double x0, const double y0, const double z0, const double dx, 
 			{
 				if (sphere[i][j][k])
 				{
-					double a = i * dx, b = i * (1 + dx), c = j * dy - R, d = (j + 1) * dy - R, e = k * dz - R, f = (k + 1) * dz - R;
+					double a = i * dx, b = (i + 1) * dx, c = j * dy - R, d = (j + 1) * dy - R, e = k * dz - R, f = (k + 1) * dz - R;
 					double sum0 = sum;
 					sum = sum + areal(radius, a, b, c, d, e, f, latitudes, longitudes, spheremesh, x0, y0, z0, st, dx, dy, dz, i, j, k);
-					if(sum0!=sum) std::cout << "Sum: " << sum << " Radius: " << radius << " " <<a << "," << b << "," << c << "," << d << "," << e << "," << f << "\n";
+					if(sum0!=sum) std::cout << "Sum: " << sum << " Radius: " << radius << " Elements:" << elements << " " << a << "," << b << "," << c << "," << d << "," << e << "," << f << "\n";
 				}
 			}
 	/*finish = std::chrono::high_resolution_clock::now();
@@ -425,7 +431,7 @@ vector *forceandtorque(std::vector<std::vector<std::vector<bool>>> sphere, std::
 }
 std::tuple<vector, vector> forceandtorquestag(std::vector<std::vector<std::vector<bool>>> sphere, std::vector<std::vector<std::vector<double>>> u, std::vector<std::vector<std::vector<double>>> v, std::vector<std::vector<std::vector<double>>> w, std::vector<std::vector<std::vector<double>>> P, int nx, int ny, int nz, double dx, double dy, double dz, double x0, double y0, double z0, double R, double radius)
 {
-	int latitudes = 70, longitudes = 70;
+	int latitudes = 5, longitudes = 5;
 	double*** spheremesh = compute_spheremesh(radius, latitudes, longitudes);
 	print_rss_memory("after spheremesh");
 	tensor*** stresses = allocate3dt(nx, ny, nz);
@@ -446,15 +452,18 @@ std::tuple<vector, vector> forceandtorquestag(std::vector<std::vector<std::vecto
 		for (int y = floor((R+y0 - radius) / dy); y <= floor((R + y0 + radius) / dy); y++)
 			for (int z = floor((R + z0 - radius) / dz); z < floor((R + z0 + radius) / dz); z++)
 			{
-				tensor grad = gradv(x, y, z, nx, ny, nz, dx, dy, dz, a); //uvw
-				tensor p(P[x][y][z]);
-				stresses[x][y][z] = grad.transpose() + grad - p;
+				if (sphere[x][y][z])
+				{
+					tensor grad = gradv(x, y, z, nx, ny, nz, dx, dy, dz, a); //uvw
+					tensor p(P[x][y][z]);
+					stresses[x][y][z] = grad.transpose() + grad - p;
+				}
 			}
-	std::cout << "Area: " << area(x0, y0, z0, dx, dy, dz, nx, ny, nz, longitudes, latitudes, radius, spheremesh, sphere, stresses, R);
+	//std::cout << "Area: " << area(x0, y0, z0, dx, dy, dz, nx, ny, nz, longitudes, latitudes, radius, spheremesh, sphere, stresses, R);
 	//determine the force and torque
 	vector Force = force(x0, y0, z0, dx, dy, dz, nx, ny, nz, longitudes, latitudes, radius, spheremesh, sphere, stresses, R);
 	vector Torque = torque(x0, y0, z0, dx, dy, dz, nx, ny, nz, longitudes, latitudes, radius, spheremesh, sphere, stresses, R);
-	free(spheremesh);
-	free(stresses);
+	deletia(spheremesh, latitudes, longitudes, 4);
+	deletia(stresses, nx, ny, nz);
 	return std::make_tuple(Force, Torque);
 }
