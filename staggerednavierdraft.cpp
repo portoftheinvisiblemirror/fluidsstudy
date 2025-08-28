@@ -36,8 +36,8 @@ real alpha = 0.5;         // Under-relaxation for velocity
 real Beta = 0.3;                // Under-relaxation for pressure
 real r = 0.05; //radius of a sphere
 int nballs=6; //divisible by 6
-double nradii = 10;
-std::vector<real> centers;
+int nradii = 10;
+std::vector<std::vector<real>> centers;
 real mass = 1; //mass of the particle
 // Arrays
 std::vector<std::vector<std::vector<double>>> u, v, w;         // Velocity components
@@ -582,7 +582,13 @@ int main()
     // Initialize flow field
     initialize_flow();
 
-    vector angv, rcm(cx,cy,cz), ucm;
+    std::vector<vector> angv(nballs * nradii);
+    std::vector<vector> rcm(nballs * nradii);
+    for (int M = 0; M < nballs * nradii; ++M)
+    {
+        
+    }
+    std::vector<vector> ucm(nballs * nradii);
     for (int time_step = 1; time_step <= max_iter; ++time_step) {
         double time = static_cast<double>(time_step) * dt;
 
@@ -645,24 +651,35 @@ int main()
         ////insert sphere code here
         //auto start = std::chrono::high_resolution_clock::now();
         //
-        vector F, T;
-        std::tie(F,T)= forceandtorquestag(sphere2, u, v, w, p, nx, ny, nz, dx, dy, dz, cx, cy, cz, R, r);
-        angv = angv + T * dt / (2 * mass * r * r / 5);
-        ucm = ucm + F * dt / mass;
-        rcm = rcm + ucm * dt + F * dt * dt / (2 * mass);
-        cx = rcm.X(), cy = rcm.Y(), cz = rcm.Z();
-        sphere = filledmidpointsphere(cx, cy, cz, dx, dy, dz, nx, ny, nz, r, R);
-        sphere2 = emptiedmidpointspherex(cx, cy, cz, dx, dy, dz, nx, ny, nz, r, R);
-        sphere3 = emptiedmidpointsphere(cx, cy, cz, dx, dy, dz, nx, ny, nz, r, R);
-        std::cout << cx << " " << cy << " " << cz << "\n";
-        for (auto &E : sphere2)
+        for (int M = 0; M < nballs * nradii; ++M)
         {
-            int i = E[0], j = E[1], k = E[2];
-            vector position = { i * dx,-R + (j)*dy, -R + (k)*dz };
-            vector surfacevelocity = ucm + angv % position;
-            u[i][j][k] = surfacevelocity.X(), v[i][j][k] = surfacevelocity.Y(), w[i][j][k] = surfacevelocity.Z();
+            vector F, T;
+            std::tie(F, T) = forceandtorquestag(sphere2s[M], u, v, w, p, nx, ny, nz, dx, dy, dz, cx, cy, cz, R, r);
+            angv[M] = angv[M] + T * dt / (2 * mass * r * r / 5);
+            ucm[M] = ucm[M] + F * dt / mass;
+            rcm[M] = rcm[M] + ucm[M] * dt + F * dt * dt / (2 * mass);
+            centers[M][0] = rcm[M].X(), centers[M][1] = rcm[M].Y(), centers[M][2] = rcm[M].Z();
+            sphere2s[M] = emptiedmidpointspherex(centers[M][0], centers[M][1], centers[M][2], dx, dy, dz, nx, ny, nz, r, R);
         }
-
+        for (int M = 0; M < nballs * nradii; ++M)
+        {
+            for (auto& E : sphere2s[M])
+            {
+                int i = E[0], j = E[1], k = E[2];
+                vector position = { i * dx,-R + (j)*dy, -R + (k)*dz };
+                vector surfacevelocity = ucm[M] + angv[M] % position;
+                u[i][j][k] = surfacevelocity.X(), v[i][j][k] = surfacevelocity.Y(), w[i][j][k] = surfacevelocity.Z();
+            }
+        }
+        sphere.clear();
+        sphere3.clear();
+        sphere.resize(nx, std::vector<std::vector<bool>>(ny, std::vector<bool>(nz));
+        sphere.clear(nx, std::vector<std::vector<bool>>(ny, std::vector<bool>(nz));
+        for (auto i : centers)
+        {
+            filledmidpointsphere(i[0], i[1], i[2], dx, dy, dz, nx, ny, nz, r, R, sphere);
+            emptiedmidpointsphere(i[0], i[1], i[2], dx, dy, dz, nx, ny, nz, r, R, sphere3);
+        }
         //// Stop the timer
         //auto end = std::chrono::high_resolution_clock::now();
 
