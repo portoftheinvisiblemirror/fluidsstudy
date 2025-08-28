@@ -308,7 +308,7 @@ static vector torquel(double radius, double xlow, double xup, double ylow, doubl
 	return torque;
 }
 
-tensor gradv(double x, double y, double z, int nx,int ny, int nz, double dx, double dy, double dz, std::vector<std::vector<std::vector<std::vector<double>>>> a)
+inline __attribute__((always_inline)) tensor gradv(double x, double y, double z, int nx,int ny, int nz, double dx, double dy, double dz, std::vector<std::vector<std::vector<std::vector<double>>>> a)
 {
 
 	double arr[9] = { partdif(a, x, y, z, nx, dx, 0, 0), partdif(a, x, y, z, nx, dx, 1, 0), partdif(a, x, y, z, nx, dx, 2, 0),

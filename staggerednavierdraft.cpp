@@ -20,7 +20,7 @@ void output_final_results();
 typedef double real;
 //constants
 size_t nx = 128, ny = 64, nz = 64;   // Smaller grid for testing
-size_t max_iter = 6000;             // Maximum time steps
+size_t max_iter = 50;             // Maximum time steps
 size_t n_correctors = 4;            // Fewer correctors
 real dt = 1e-3;          // Much smaller time step
 real Re = 50.0;                  // Lower Reynolds number
@@ -266,7 +266,7 @@ void solve_pressure_correction() {
     }
     double omega = 1.5;
     // Solve pressure correction equation using SOR
-    for (size_t sor_iter = 1; sor_iter <= 10; ++sor_iter) {  // Fewer iterations
+    for (size_t sor_iter = 1; sor_iter <= 2; ++sor_iter) {  // Fewer iterations
         for (size_t i = 1; i < nx - 1; ++i) {
             for (size_t j = 1; j < ny - 1; ++j) {
                 for (size_t k = 1; k < nz - 1; ++k) {
