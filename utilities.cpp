@@ -38,7 +38,7 @@ tensor sheara(double**** a, int x, int y, int z)
 	tensor grad(c1, c2, c3);
 	return grad + grad.transpose();
 }
-double partdif(double **** a,int x, int y, int z, int n, double h, int d,int e)//array,x,y,z ,number of spacings, spacing, component of vector, direction of differentiation: 0=x,1=y,2=z
+inline __attribute__((always_inline)) double partdif(double **** a,int x, int y, int z, int n, double h, int d,int e)//array,x,y,z ,number of spacings, spacing, component of vector, direction of differentiation: 0=x,1=y,2=z
 {
 	double answer = 0;
 	switch (e)
@@ -166,7 +166,7 @@ double partdif(std::vector< std::vector<std::vector<std::vector<double>>>>& a, i
 	}
 	return answer;
 }
-double partdif(std::vector<std::vector<std::vector<double>>>& a, int x, int y, int z, int n, double h, int e)//array,x,y,z ,number of spacings, spacing, direction of differentiation: 0=x,1=y,2=z
+inline __attribute__((always_inline)) double partdif(std::vector<std::vector<std::vector<double>>>& a, int x, int y, int z, int n, double h, int e)//array,x,y,z ,number of spacings, spacing, direction of differentiation: 0=x,1=y,2=z
 {
 	double answer = 0;
 	switch (e)

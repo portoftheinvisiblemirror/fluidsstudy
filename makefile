@@ -1,7 +1,7 @@
 $(wildcard $(SOURCEDIR)/*.tex)
 all: test4dalloc ns2d_solver ns3d_solver demo staggerednavierdraft
 .cpp.o:
-	g++ -I/usr/include/eigen3/Eigen -c -g -O3 -o $@ $<
+	g++ -I/usr/include/eigen3/Eigen -c -finline-functions -pg -g -O3 -o $@ $<
 midpointsphere: midpointsphere.o 
 	g++ -O3 -o $@ $^
 	objdump -d $@ > assembly.txt
@@ -18,7 +18,7 @@ ns3d_solver: ns3d_solver.o ns3d.o vtk.o
 demo: demo.o
 	g++ -O3 -o $@ $^
 clean:
-	rm copycube copycube.o mem.o utilities.o test4dalloc.o
+	rm copycube.o mem.o utilities.o test4dalloc.o
 staggerednavierdraft: staggerednavierdraft.o copycube.o mem.o utilities.o vtk.o midpointsphere.o
-	g++ -g -O3 -o $@ $^
+	g++ -finline-functions -pg -g -O3 -o $@ $^
 	objdump -d $@ > assembly.txt
