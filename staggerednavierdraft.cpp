@@ -34,7 +34,10 @@ real dz = 2.0 * R / (nz - 1.); // Grid spacing in z
 real tolerance = 1.0e-4;          // Relaxed tolerance
 real alpha = 0.5;         // Under-relaxation for velocity
 real Beta = 0.3;                // Under-relaxation for pressure
-real cx = 2, cy = 0, cz = 0, r = 0.3; //center coordinates of a sphere, radius of a sphere
+real r = 0.05; //radius of a sphere
+int nballs=6; //divisible by 6
+double nradii = 10;
+std::vector<real> centers;
 real mass = 1; //mass of the particle
 // Arrays
 std::vector<std::vector<std::vector<double>>> u, v, w;         // Velocity components
@@ -45,9 +48,11 @@ std::vector<std::vector<std::vector<double>>> p_prime;         // Pressure corre
 std::vector<std::vector<std::vector<double>>> Div;                           // Divergence
 std::vector<double> x, y, z, xx, yy, zz;                                   // Grid coordinates
 std::vector<std::vector<double>> radius, theta_coord;         // Cylindrical coordinates
-std::vector<std::vector<std::vector<bool>>> sphere; //boolean ball
-std::vector<std::vector<int>> sphere2; //indices of ball boundary
-std::vector<std::vector<std::vector<bool>>> sphere3; //boolean ball boundary
+std::vector<std::vector<std::vector<bool>>> sphere1(nx, std::vector<std::vector<bool>>(ny, std::vector<bool>(nz)));
+std::vector<std::vector<std::vector<bool>>> sphere3(nx, std::vector<std::vector<bool>>(ny, std::vector<bool>(nz)));
+std::vector<std::vector<int>> sphere2s; //indices of ball boundarys
+std::vector<std::vector<std::vector<bool>>> totalspheres;
+std::vector<std::vector<std::vector<bool>>> totalsphere3s;
 void allocate_arrays()
 {
     u.resize(nx + 1, std::vector<std::vector<double>>(ny, std::vector<double>(nz, 0.0)));
@@ -71,9 +76,6 @@ void allocate_arrays()
 
     radius.resize(ny, std::vector<double>(nz, 0.0));
     theta_coord.resize(ny, std::vector<double>(nz, 0.0));
-    sphere = filledmidpointsphere(cx, cy, cz, dx, dy, dz, nx, ny, nz, r, R);
-    sphere2 = emptiedmidpointspherex(cx, cy, cz, dx, dy, dz, nx, ny, nz, r, R);
-    sphere3 = emptiedmidpointsphere(cx, cy, cz, dx, dy, dz, nx, ny, nz, r, R);
 }
 
 
@@ -110,6 +112,24 @@ void initialize_grid()
     }
     std::cout << "Staggered Grid initialized : nx = " << nx << "ny = " << ny << "nz = " << nz;
     std::cout << "Grid spacing: dx=" << dx << " dy=" << dy << " dz =" << dz;
+}
+
+void initialize_balls()
+{
+    centers.resize(nradii*nballs, std::vector<double>(3, 0));
+    for (int j = 1; j<=nradii; ++j)
+    for (int i = 0; i < nballs; ++i)
+    {
+        centers[(j - 1) * nballs + i][0] = r+dx;
+        centers[(j - 1) * nballs + i][1] = (j)/(nradii+1)*R*cos(i*pi/nballs);
+        centers[(j - 1) * nballs + i][2] = (j) / (nradii + 1) * R * sin(i * pi / nballs);
+    };
+    for (auto i : centers)
+    {
+        filledmidpointsphere(i[0], i[1], i[2], dx, dy, dz, nx, ny, nz, r, R,sphere);
+        sphere2s.push_back(emptiedmidpointspherex(i[0], i[1], i[2], dx, dy, dz, nx, ny, nz, r, R));
+        emptiedmidpointsphere(i[0], i[1], i[2], dx, dy, dz, nx, ny, nz, r, R,sphere3);
+    }
 }
 
 double findvmax(const std::vector< std::vector<std::vector<std::vector<double>>>>& v, const int N)
@@ -158,6 +178,36 @@ void initialize_flow()
                 u[0][j][k] = 0;
             }
         }
+    for (size_t i = 1; i < nx+1; ++i)
+    {
+        for (size_t j = 0; j < ny; ++j)
+            for (size_t k = 0; k < nz; ++k)
+            {
+                if (radius[j][k] <= R && !sphere[0][j][k])
+                {
+                    p[i][j][k] = -4*i*dx*rho*L*inletvelocity*inlet_velocity/R/R/Re;
+                }
+                else
+                {
+                    p[i][j][k] = 0;
+                }
+            }
+    }
+    for (size_t i = 0; i < nx; ++i)
+    {
+        for (size_t j = 0; j < ny; ++j)
+            for (size_t k = 0; k < nz; ++k)
+            {
+                if (radius[j][k] <= R && !sphere[0][j][k])
+                {
+                    p[i][j][k] = inlet_velocity * (1.0 - (radius[j][k] / R) * (radius[j][k] / R));
+                }
+                else
+                {
+                    p[i][j][k] = 0;
+                }
+            }
+    }
     u_old = u;
     v_old = v;
     w_old = w;
@@ -592,9 +642,9 @@ int main()
             output_results(time_step, time);
             break;
         }
-        //insert sphere code here
-        auto start = std::chrono::high_resolution_clock::now();
-        
+        ////insert sphere code here
+        //auto start = std::chrono::high_resolution_clock::now();
+        //
         vector F, T;
         std::tie(F,T)= forceandtorquestag(sphere2, u, v, w, p, nx, ny, nz, dx, dy, dz, cx, cy, cz, R, r);
         angv = angv + T * dt / (2 * mass * r * r / 5);
@@ -613,16 +663,16 @@ int main()
             u[i][j][k] = surfacevelocity.X(), v[i][j][k] = surfacevelocity.Y(), w[i][j][k] = surfacevelocity.Z();
         }
 
-        // Stop the timer
-        auto end = std::chrono::high_resolution_clock::now();
+        //// Stop the timer
+        //auto end = std::chrono::high_resolution_clock::now();
 
-        // Calculate the duration
-        auto duration = end - start;
+        //// Calculate the duration
+        //auto duration = end - start;
 
-        // Convert and display the duration in microseconds
-        auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(duration).count();
-        std::cout << "Execution time: " << microseconds << " microseconds" << std::endl;
-               
+        //// Convert and display the duration in microseconds
+        //auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(duration).count();
+        //std::cout << "Execution time: " << microseconds << " microseconds" << std::endl;
+        //       
     }
 
     // Final output

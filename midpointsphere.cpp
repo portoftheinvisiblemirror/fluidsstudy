@@ -226,9 +226,9 @@ void filledmidpointcircle(const double y0, const double z0, const double dy, con
 	}
 }
 
-std::vector<std::vector<std::vector<bool>>> filledmidpointsphere(const double x0, const double y0, const double z0, const double dx, const double dy, const double dz, const int nx, const int ny, const int nz, const double radius, const double R)
+void filledmidpointsphere(const double x0, const double y0, const double z0, const double dx, const double dy, const double dz, const int nx, const int ny, const int nz, const double radius, const double R, std::vector<std::vector<std::vector<bool>>> & sphere)
 {
-	std::vector<std::vector<std::vector<bool>>> sphere(nx, std::vector<std::vector<bool>>(ny, std::vector<bool>(nz)));
+	
 	//Step 1: find the great circle at x = xcenter
 
 	//Part a: find the indices of the center
@@ -319,9 +319,8 @@ void emptiedmidpointcircle(const double y0, const double z0, const double dy, co
 	}
 }
 
-std::vector<std::vector<std::vector<bool>>> emptiedmidpointsphere(const double x0, const double y0, const double z0, const double dx, const double dy, const double dz, const int nx, const int ny, const int nz, const double radius, const double R)
+void emptiedmidpointsphere(const double x0, const double y0, const double z0, const double dx, const double dy, const double dz, const int nx, const int ny, const int nz, const double radius, const double R, std::vector<std::vector<std::vector<bool>>> & sphere)
 {
-	std::vector<std::vector<std::vector<bool>>> sphere(nx, std::vector<std::vector<bool>>(ny, std::vector<bool>(nz)));
 	//Step 1: find the great circle at x = xcenter
 
 	//Part a: find the indices of the center
