@@ -421,13 +421,8 @@ vector *forceandtorque(std::vector<std::vector<int>> sphere, std::vector<std::ve
 	free(stresses);
 	return answers;
 }
-std::tuple<vector, vector> forceandtorquestag(std::vector<std::vector<int>> sphere, std::vector<std::vector<std::vector<double>>> u, std::vector<std::vector<std::vector<double>>> v, std::vector<std::vector<std::vector<double>>> w, std::vector<std::vector<std::vector<double>>> P, int nx, int ny, int nz, double dx, double dy, double dz, double x0, double y0, double z0, double R, double radius)
+std::tuple<vector, vector> forceandtorquestag(std::vector<std::vector<int>> sphere, std::vector<std::vector<std::vector<double>>> u, std::vector<std::vector<std::vector<double>>> v, std::vector<std::vector<std::vector<double>>> w, std::vector<std::vector<std::vector<double>>> P, int nx, int ny, int nz, double dx, double dy, double dz, double x0, double y0, double z0, double R, double radius, double *** spheremesh, tensor *** stresses, int latitudes, int longitudes)
 {
-	int latitudes = 5, longitudes = 5;
-	double*** spheremesh = compute_spheremesh(radius, latitudes, longitudes);
-	print_rss_memory("after spheremesh");
-	tensor*** stresses = allocate3dt(nx, ny, nz);
-	print_rss_memory("after stresses");
 	std::vector<std::vector<std::vector<double>>> us(nx, std::vector<std::vector<double>>(ny, std::vector<double>(nz)));
 	std::vector<std::vector<std::vector<double>>> vs(nx, std::vector<std::vector<double>>(ny, std::vector<double>(nz)));
 	std::vector<std::vector<std::vector<double>>> ws(nx, std::vector<std::vector<double>>(ny, std::vector<double>(nz)));
@@ -452,7 +447,5 @@ std::tuple<vector, vector> forceandtorquestag(std::vector<std::vector<int>> sphe
 	//determine the force and torque
 	vector Force = force(x0, y0, z0, dx, dy, dz, nx, ny, nz, longitudes, latitudes, radius, spheremesh, sphere, stresses, R);
 	vector Torque = torque(x0, y0, z0, dx, dy, dz, nx, ny, nz, longitudes, latitudes, radius, spheremesh, sphere, stresses, R);
-	deletia(spheremesh, latitudes, longitudes, 4);
-	deletia(stresses, nx, ny, nz);
 	return std::make_tuple(Force, Torque);
 }

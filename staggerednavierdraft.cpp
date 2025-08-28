@@ -596,6 +596,12 @@ int main()
         w_old = w;
         p_old = p;
 
+				int latitudes = 5, longitudes = 5;
+				double*** spheremesh = compute_spheremesh(r, latitudes, longitudes);
+				//print_rss_memory("after spheremesh");
+				tensor*** stresses = allocate3dt(nx, ny, nz);
+				//print_rss_memory("after stresses");
+
         // PISO algorithm
         for (int corrector = 1; corrector <= n_correctors; ++corrector) {
             // Step 1: Solve momentum equations for intermediate velocities
@@ -646,7 +652,7 @@ int main()
         //auto start = std::chrono::high_resolution_clock::now();
         //
         vector F, T;
-        std::tie(F,T)= forceandtorquestag(sphere2, u, v, w, p, nx, ny, nz, dx, dy, dz, cx, cy, cz, R, r);
+        std::tie(F,T)= forceandtorquestag(sphere2, u, v, w, p, nx, ny, nz, dx, dy, dz, cx, cy, cz, R, r, spheremesh, stresses, latitudes, longitudes);
         angv = angv + T * dt / (2 * mass * r * r / 5);
         ucm = ucm + F * dt / mass;
         rcm = rcm + ucm * dt + F * dt * dt / (2 * mass);
@@ -663,8 +669,11 @@ int main()
             u[i][j][k] = surfacevelocity.X(), v[i][j][k] = surfacevelocity.Y(), w[i][j][k] = surfacevelocity.Z();
         }
 
-        //// Stop the timer
-        //auto end = std::chrono::high_resolution_clock::now();
+				deletia(spheremesh, latitudes, longitudes, 4);
+				deletia(stresses, nx, ny, nz);
+
+        // Stop the timer
+        // auto end = std::chrono::high_resolution_clock::now();
 
         //// Calculate the duration
         //auto duration = end - start;
