@@ -323,7 +323,7 @@ tensor gradv(double x, double y, double z, int nx,int ny, int nz, double dx, dou
 
 
 
-vector force(const double x0, const double y0, const double z0, const double dx, const double dy, const double dz, const double nx, const int ny, const int nz, unsigned int longitudes, unsigned int latitudes, double radius, double*** spheremesh, std::vector<std::vector<std::vector<bool>>> sphere, tensor*** st, const double R)
+vector force(const double x0, const double y0, const double z0, const double dx, const double dy, const double dz, const double nx, const int ny, const int nz, unsigned int longitudes, unsigned int latitudes, double radius, double*** spheremesh, std::vector<std::vector<int>> sphere, tensor*** st, const double R)
 {
 	vector sum(0, 0, 0);
 	/*auto start = std::chrono::high_resolution_clock::now();
@@ -333,16 +333,12 @@ vector force(const double x0, const double y0, const double z0, const double dx,
 	start = std::chrono::high_resolution_clock::now();*/
 	int l = 0;
 	assert(spheremesh != nullptr);
-	for (int i = 0; i < nx; ++i)
-		for (int j = 0; j < ny; ++j)
-			for (int k = 0; k < nz; ++k)
-			{
-				if (sphere[i][j][k])
-				{
-					double a = i * dx, b = (i+1) *  dx, c = j * dy - R, d = (j + 1) * dy - R, e = k * dz - R, f = (k + 1) * dz - R;
-					sum = sum + forcel(radius, a, b, c, d, e, f, latitudes, longitudes, spheremesh, x0, y0, z0, st, dx, dy, dz, i, j, k);
-				}
-			}
+	for (auto& E : sphere)
+	{
+		int i = E[0], j = E[1], k = E[2];
+		double a = i * dx, b = (i + 1) * dx, c = j * dy - R, d = (j + 1) * dy - R, e = k * dz - R, f = (k + 1) * dz - R;
+		sum = sum + forcel(radius, a, b, c, d, e, f, latitudes, longitudes, spheremesh, x0, y0, z0, st, dx, dy, dz, i, j, k);
+	}
 	/*finish = std::chrono::high_resolution_clock::now();
 	milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start);
 	std::cout << "time of area: " << milliseconds.count() / 1000.0 << "s\n";
@@ -350,7 +346,7 @@ vector force(const double x0, const double y0, const double z0, const double dx,
 	std::cout << "Calculated force: " << "(" << sum.X() << ", " << sum.Y() << ", " << sum.Z() << ")" << std::endl;*/
 	return sum;
 }
-vector torque(const double x0, const double y0, const double z0, const double dx, const double dy, const double dz, const double nx, const int ny, const int nz, unsigned int longitudes, unsigned int latitudes, double radius, double*** spheremesh, std::vector<std::vector<std::vector<bool>>> sphere, tensor*** st, const double R)
+vector torque(const double x0, const double y0, const double z0, const double dx, const double dy, const double dz, const double nx, const int ny, const int nz, unsigned int longitudes, unsigned int latitudes, double radius, double*** spheremesh, std::vector<std::vector<int>> sphere, tensor*** st, const double R)
 {
 	vector sum(0, 0, 0);
 	/*auto start = std::chrono::high_resolution_clock::now();
@@ -360,15 +356,11 @@ vector torque(const double x0, const double y0, const double z0, const double dx
 	start = std::chrono::high_resolution_clock::now();*/
 	int l = 0;
 	assert(spheremesh != nullptr);
-	for (int i = 0; i<nx;++i)
-		for (int j = 0; j < ny; ++j)
-			for (int k = 0; k < nz; ++k)
+	for (auto& E : sphere)
 	{
-				if (sphere[i][j][k])
-				{
-					double a = i * dx, b = (i+1) * dx, c = j * dy - R, d = (j + 1) * dy - R, e = k * dz - R, f = (k + 1) * dz - R;
-					sum = sum + torquel(radius, a, b, c, d, e, f, latitudes, longitudes, spheremesh, x0, y0, z0, st, dx, dy, dz, i, j, k);
-				}
+		int i = E[0], j = E[1], k = E[2];
+		double a = i * dx, b = (i + 1) * dx, c = j * dy - R, d = (j + 1) * dy - R, e = k * dz - R, f = (k + 1) * dz - R;
+		sum = sum + torquel(radius, a, b, c, d, e, f, latitudes, longitudes, spheremesh, x0, y0, z0, st, dx, dy, dz, i, j, k);
 	}
 	/*finish = std::chrono::high_resolution_clock::now();
 	milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start);
@@ -406,7 +398,7 @@ double area(const double x0, const double y0, const double z0, const double dx, 
 	std::cout << "Calculated force: " << "(" << sum.X() << ", " << sum.Y() << ", " << sum.Z() << ")" << std::endl;*/
 	return sum;
 }
-vector *forceandtorque(std::vector<std::vector<std::vector<bool>>> sphere, std::vector<std::vector<std::vector<double>>> u, std::vector<std::vector<std::vector<double>>> v, std::vector<std::vector<std::vector<double>>> w, std::vector<std::vector<std::vector<double>>> P, int nx, int ny, int nz, double dx, double dy, double dz, double x0, double y0, double z0, double R, double radius)
+vector *forceandtorque(std::vector<std::vector<int>> sphere, std::vector<std::vector<std::vector<double>>> u, std::vector<std::vector<std::vector<double>>> v, std::vector<std::vector<std::vector<double>>> w, std::vector<std::vector<std::vector<double>>> P, int nx, int ny, int nz, double dx, double dy, double dz, double x0, double y0, double z0, double R, double radius)
 {
 	int latitudes = 70, longitudes = 70;
 	double*** spheremesh = compute_spheremesh(radius, latitudes, longitudes);
@@ -429,7 +421,7 @@ vector *forceandtorque(std::vector<std::vector<std::vector<bool>>> sphere, std::
 	free(stresses);
 	return answers;
 }
-std::tuple<vector, vector> forceandtorquestag(std::vector<std::vector<std::vector<bool>>> sphere, std::vector<std::vector<std::vector<double>>> u, std::vector<std::vector<std::vector<double>>> v, std::vector<std::vector<std::vector<double>>> w, std::vector<std::vector<std::vector<double>>> P, int nx, int ny, int nz, double dx, double dy, double dz, double x0, double y0, double z0, double R, double radius)
+std::tuple<vector, vector> forceandtorquestag(std::vector<std::vector<int>> sphere, std::vector<std::vector<std::vector<double>>> u, std::vector<std::vector<std::vector<double>>> v, std::vector<std::vector<std::vector<double>>> w, std::vector<std::vector<std::vector<double>>> P, int nx, int ny, int nz, double dx, double dy, double dz, double x0, double y0, double z0, double R, double radius)
 {
 	int latitudes = 5, longitudes = 5;
 	double*** spheremesh = compute_spheremesh(radius, latitudes, longitudes);
@@ -448,17 +440,14 @@ std::tuple<vector, vector> forceandtorquestag(std::vector<std::vector<std::vecto
 				ws[x][y][z] = (w[x][y][z] + w[x][y][z+1]) / 2;
 			}
 	std::vector<std::vector<std::vector<std::vector<double>>>> a = { us,vs,ws};
-	for (int x = floor((x0-radius)/dx); x <= floor((x0 + radius) / dx); x++)
-		for (int y = floor((R+y0 - radius) / dy); y <= floor((R + y0 + radius) / dy); y++)
-			for (int z = floor((R + z0 - radius) / dz); z < floor((R + z0 + radius) / dz); z++)
-			{
-				if (sphere[x][y][z])
-				{
-					tensor grad = gradv(x, y, z, nx, ny, nz, dx, dy, dz, a); //uvw
-					tensor p(P[x][y][z]);
-					stresses[x][y][z] = grad.transpose() + grad - p;
-				}
-			}
+	for (auto& E : sphere)
+	{
+		int x = E[0], y = E[1], z = E[2];
+		tensor grad = gradv(x, y, z, nx, ny, nz, dx, dy, dz, a); //uvw
+		tensor p(P[x][y][z]);
+		stresses[x][y][z] = grad.transpose() + grad - p;
+	}
+			
 	//std::cout << "Area: " << area(x0, y0, z0, dx, dy, dz, nx, ny, nz, longitudes, latitudes, radius, spheremesh, sphere, stresses, R);
 	//determine the force and torque
 	vector Force = force(x0, y0, z0, dx, dy, dz, nx, ny, nz, longitudes, latitudes, radius, spheremesh, sphere, stresses, R);

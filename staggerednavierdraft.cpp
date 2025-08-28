@@ -22,7 +22,7 @@ typedef double real;
 size_t nx = 128, ny = 64, nz = 64;   // Smaller grid for testing
 size_t max_iter = 6000;             // Maximum time steps
 size_t n_correctors = 4;            // Fewer correctors
-real dt = 1e-5;          // Much smaller time step
+real dt = 1e-3;          // Much smaller time step
 real Re = 50.0;                  // Lower Reynolds number
 real nu = 1.0 / Re;                 // Kinematic viscosity
 real rho = 1.0;              // Density
@@ -45,9 +45,9 @@ std::vector<std::vector<std::vector<double>>> p_prime;         // Pressure corre
 std::vector<std::vector<std::vector<double>>> Div;                           // Divergence
 std::vector<double> x, y, z, xx, yy, zz;                                   // Grid coordinates
 std::vector<std::vector<double>> radius, theta_coord;         // Cylindrical coordinates
-std::vector<std::vector<std::vector<bool>>> sphere(nx, std::vector<std::vector<bool>>(ny, std::vector<bool>(nz,0))); //boolean sphere
-std::vector<std::vector<std::vector<bool>>> sphere2(nx, std::vector<std::vector<bool>>(ny, std::vector<bool>(nz,0))); //boolean sphere
-
+std::vector<std::vector<std::vector<bool>>> sphere; //boolean ball
+std::vector<std::vector<int>> sphere2; //indices of ball boundary
+std::vector<std::vector<std::vector<bool>>> sphere3; //boolean ball boundary
 void allocate_arrays()
 {
     u.resize(nx + 1, std::vector<std::vector<double>>(ny, std::vector<double>(nz, 0.0)));
@@ -72,7 +72,8 @@ void allocate_arrays()
     radius.resize(ny, std::vector<double>(nz, 0.0));
     theta_coord.resize(ny, std::vector<double>(nz, 0.0));
     sphere = filledmidpointsphere(cx, cy, cz, dx, dy, dz, nx, ny, nz, r, R);
-    sphere2 = filledmidpointsphere(cx, cy, cz, dx, dy, dz, nx, ny, nz, r, R);
+    sphere2 = emptiedmidpointspherex(cx, cy, cz, dx, dy, dz, nx, ny, nz, r, R);
+    sphere3 = emptiedmidpointsphere(cx, cy, cz, dx, dy, dz, nx, ny, nz, r, R);
 }
 
 
@@ -373,7 +374,7 @@ void apply_boundary_conditions() {
     for (size_t i = 0; i < nx+1; ++i) {
         for (size_t j = 0; j < ny; ++j) {
             for (size_t k = 0; k < nz; ++k) {
-                if (radius[j][k] > R  || (sphere[std::min(i, nx - 1)][j][k]&& !sphere2[std::min(i, nx - 1)][j][k])) {
+                if (radius[j][k] > R  || (sphere[std::min(i, nx - 1)][j][k]&& !sphere3[std::min(i, nx - 1)][j][k])) {
                     u[i][j][k] = 0.0;
                 }
             }
@@ -382,7 +383,7 @@ void apply_boundary_conditions() {
     for (size_t i = 0; i < nx; ++i) {
         for (size_t j = 0; j < ny+1; ++j) {
             for (size_t k = 0; k < nz; ++k) {
-                if (radius[std::min(j, ny - 1)][k] > R || (sphere[i][std::min(j, ny - 1)][k] && !sphere2[i][std::min(j, ny - 1)][k])) {
+                if (radius[std::min(j, ny - 1)][k] > R || (sphere[i][std::min(j, ny - 1)][k] && !sphere3[i][std::min(j, ny - 1)][k])) {
                     v[i][j][k] = 0.0;
                 }
             }
@@ -391,7 +392,7 @@ void apply_boundary_conditions() {
     for (size_t i = 0; i < nx; ++i) {
         for (size_t j = 0; j < ny; ++j) {
             for (size_t k = 0; k < nz+1; ++k) {
-                if (radius[j][std::min(k, nz - 1)] > R ||(sphere[i][j][std::min(k, nz - 1)] && !sphere2[i][j][std::min(k, nz - 1)])) {
+                if (radius[j][std::min(k, nz - 1)] > R ||(sphere[i][j][std::min(k, nz - 1)] && !sphere3[i][j][std::min(k, nz - 1)])) {
                     w[i][j][k] = 0.0;
                 }
             }
@@ -571,20 +572,12 @@ int main()
 
         // Apply boundary conditions
         apply_boundary_conditions();
-        for (int i = 0; i < nx; ++i)
+        for (auto& E : sphere2)
         {
-            for (int j = 0; j < ny; ++j)
-            {
-                for (int k = 0; k < nz; ++k)
-                {
-                    if (sphere2[i][j][k])
-                    {
-                        vector position = { i * dx,-R + (j)*dy, -R + (k)*dz };
-                        vector surfacevelocity = ucm + angv % position;
-                        u[i][j][k] = surfacevelocity.X(), v[i][j][k] = surfacevelocity.Y(), w[i][j][k] = surfacevelocity.Z();
-                    }
-                }
-            }
+            int i = E[0], j = E[1], k = E[2];
+            vector position = { i * dx,-R + (j)*dy, -R + (k)*dz };
+            vector surfacevelocity = ucm + angv % position;
+            u[i][j][k] = surfacevelocity.X(), v[i][j][k] = surfacevelocity.Y(), w[i][j][k] = surfacevelocity.Z();
         }
         // Output results periodically
         if (time_step % 50 == 0) {
@@ -609,21 +602,15 @@ int main()
         rcm = rcm + ucm * dt + F * dt * dt / (2 * mass);
         cx = rcm.X(), cy = rcm.Y(), cz = rcm.Z();
         sphere = filledmidpointsphere(cx, cy, cz, dx, dy, dz, nx, ny, nz, r, R);
-        sphere2 = emptiedmidpointsphere(cx, cy, cz, dx, dy, dz, nx, ny, nz, r, R);
-        for (int i = 0; i < nx; ++i)
+        sphere2 = emptiedmidpointspherex(cx, cy, cz, dx, dy, dz, nx, ny, nz, r, R);
+        sphere3 = emptiedmidpointsphere(cx, cy, cz, dx, dy, dz, nx, ny, nz, r, R);
+        std::cout << cx << " " << cy << " " << cz << "\n";
+        for (auto &E : sphere2)
         {
-            for (int j = 0; j < ny; ++j)
-            {
-                for (int k = 0; k < nz; ++k)
-                {
-                    if (sphere2[i][j][k])
-                    {
-                        vector position = { i * dx,-R + (j)*dy, -R + (k)*dz };
-                        vector surfacevelocity = ucm + angv % position;
-                        u[i][j][k] = surfacevelocity.X(), v[i][j][k] = surfacevelocity.Y(), w[i][j][k] = surfacevelocity.Z();
-                    }
-                }
-            }
+            int i = E[0], j = E[1], k = E[2];
+            vector position = { i * dx,-R + (j)*dy, -R + (k)*dz };
+            vector surfacevelocity = ucm + angv % position;
+            u[i][j][k] = surfacevelocity.X(), v[i][j][k] = surfacevelocity.Y(), w[i][j][k] = surfacevelocity.Z();
         }
 
         // Stop the timer
