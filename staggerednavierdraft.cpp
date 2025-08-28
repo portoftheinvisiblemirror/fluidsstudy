@@ -602,6 +602,12 @@ int main()
         w_old = w;
         p_old = p;
 
+				int latitudes = 5, longitudes = 5;
+				double*** spheremesh = compute_spheremesh(r, latitudes, longitudes);
+				//print_rss_memory("after spheremesh");
+				tensor*** stresses = allocate3dt(nx, ny, nz);
+				//print_rss_memory("after stresses");
+
         // PISO algorithm
         for (int corrector = 1; corrector <= n_correctors; ++corrector) {
             // Step 1: Solve momentum equations for intermediate velocities
@@ -680,8 +686,12 @@ int main()
             filledmidpointsphere(i[0], i[1], i[2], dx, dy, dz, nx, ny, nz, r, R, sphere);
             emptiedmidpointsphere(i[0], i[1], i[2], dx, dy, dz, nx, ny, nz, r, R, sphere3);
         }
-        //// Stop the timer
-        //auto end = std::chrono::high_resolution_clock::now();
+
+	deletia(spheremesh, latitudes, longitudes, 4);
+	deletia(stresses, nx, ny, nz);
+
+        // Stop the timer
+        // auto end = std::chrono::high_resolution_clock::now();
 
         //// Calculate the duration
         //auto duration = end - start;
